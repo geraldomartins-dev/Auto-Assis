@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <script src="auth.js"></script>
+  <title>Estoque — Auto+Assis</title>
+  <style>
+    :root{
+      --bg:#0a0a0a;
+      --panel:#0f0f0f;
+      --accent:#ff6a00;
+      --white:#ffffff;
+      --muted:#cccccc;
+      --success:#22c55e;
+      --danger:#ff4d4d;
+      --radius:12px;
+      --shadow:0 8px 30px rgba(0,0,0,0.6);
+      font-family:Inter,system-ui,sans-serif;
+    }
+
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:var(--bg);color:var(--white);font-family:Inter,sans-serif;}
+    a{color:var(--accent);text-decoration:none;}
+    a:hover{text-decoration:underline;}
+    
+  /* Corrige o fundo branco invisível das opções do select */
+    option {
+      background-color: #141414;
+      color: #ffffff;
+    }
+
+    .container{display:flex;height:100vh;}
+    aside{width:260px;background:var(--panel);padding:24px;display:flex;flex-direction:column;gap:18px;}
+    aside .logo{display:flex;align-items:center;gap:12px;font-weight:700;}
+    aside .logo .mark{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#ffa257);display:flex;align-items:center;justify-content:center;color:var(--bg);font-weight:800;}
+    aside nav{flex:1;display:flex;flex-direction:column;gap:12px;}
+    aside nav a{display:block;padding:10px 14px;border-radius:10px;color:var(--white);}
+    aside nav a.active, aside nav a:hover{background:rgba(255,106,0,0.2);}
+    aside .user{margin-top:auto;padding:12px;border-radius:10px;background:rgba(255,255,255,0.05);text-align:center;}
+    aside button{margin-top:12px;padding:10px;border:none;border-radius:10px;background:rgba(255,77,77,0.2);color:var(--danger);cursor:pointer;transition:background 0.2s;}
+    aside button:hover{background:rgba(255,77,77,0.4);}
+
+    main{flex:1;padding:24px;overflow-y:auto;}
+    main h1{font-size:24px;margin-bottom:4px;}
+    main p{color:var(--muted);margin-bottom:18px;}
+    .actions{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+    .actions input, .actions select{padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:var(--white);}
+    .actions button{padding:10px 14px;border-radius:10px;border:none;background:linear-gradient(90deg,var(--accent),#ff8a3d);color:var(--white);cursor:pointer;transition:opacity 0.2s;}
+    .actions button:hover{opacity:0.8;}
+
+    .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:18px;}
+    .card{background:var(--panel);padding:18px;border-radius:var(--radius);box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px;}
+    .card h3{margin:0;font-size:16px;display:flex;justify-content:space-between;align-items:center;}
+    .card p{font-size:13px;color:var(--muted);}
+    .quantity{font-weight:600;}
+    .quantity.low{color:var(--danger);}
+    .quantity.ok{color:var(--success);}
+    .card button{margin-top:8px;padding:8px;border-radius:10px;border:none;background:rgba(255,106,0,0.2);color:var(--white);cursor:pointer;transition:background 0.2s;}
+    .card button:hover{background:rgba(255,106,0,0.35);}
+    .card .delete{background:rgba(255,77,77,0.2);margin-top:4px;}
+    .card .delete:hover{background:rgba(255,77,77,0.4);}
+    
+    /* Estado de carregamento */
+    .cards-loading { text-align: center; color: var(--muted); padding: 50px; font-size: 1.1em; }
+
+    /* =========================================
+       ESTILOS DO WIDGET DA INTELIGÊNCIA ARTIFICIAL
+       ========================================= */
+    .ai-chat-btn {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--accent), #ffa257);
+        color: var(--bg);
+        font-size: 28px;
+        border: none;
+        box-shadow: 0 10px 25px rgba(255, 106, 0, 0.4);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.2s;
+        z-index: 1000;
+    }
+    .ai-chat-btn:hover { transform: scale(1.08); }
+    
+    .ai-chat-window {
+        position: fixed;
+        bottom: 100px;
+        right: 24px;
+        width: 380px;
+        height: 500px;
+        background: var(--bg);
+        border: 1px solid rgba(255, 106, 0, 0.2);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        z-index: 1000;
+        transform: translateY(20px);
+        opacity: 0;
+        pointer-events: none;
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+    .ai-chat-window.active {
+        transform: translateY(0);
+        opacity: 1;
+        pointer-events: auto;
+    }
+    .ai-chat-header {
+        background: linear-gradient(90deg, #1f1f1f, #141414);
+        border-bottom: 1px solid rgba(255, 106, 0, 0.2);
+        padding: 16px;
+        font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .ai-chat-header span { display: flex; align-items: center; gap: 8px; color: var(--accent); }
+    .ai-chat-close { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; transition: color 0.2s; }
+    .ai-chat-close:hover { color: var(--danger); }
+    
+    .ai-chat-body {
+        flex: 1;
+        padding: 16px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        background: var(--panel);
+    }
+    .ai-message {
+        max-width: 85%;
+        padding: 12px 14px;
+        border-radius: 12px;
+        font-size: 14px;
+        line-height: 1.5;
+        word-wrap: break-word;
+    }
+    .ai-message.user {
+        background: rgba(255,106,0,0.15);
+        border: 1px solid rgba(255,106,0,0.3);
+        color: var(--white);
+        align-self: flex-end;
+        border-bottom-right-radius: 4px;
+    }
+    .ai-message.bot {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        color: var(--muted);
+        align-self: flex-start;
+        border-bottom-left-radius: 4px;
+    }
+    
+    .ai-chat-footer {
+        padding: 14px;
+        background: #141414;
+        border-top: 1px solid rgba(255,255,255,0.05);
+        display: flex;
+        gap: 8px;
+    }
+    .ai-chat-footer input {
+        flex: 1;
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.1);
+        background: var(--bg);
+        color: var(--white);
+        outline: none;
+        transition: border-color 0.2s;
+    }
+    .ai-chat-footer input:focus { border-color: var(--accent); }
+    .ai-chat-footer button {
+        padding: 0 16px;
+        border-radius: 8px;
+        border: none;
+        background: linear-gradient(90deg, var(--accent), #ff8a3d);
+        color: var(--bg);
+        cursor: pointer;
+        font-weight: bold;
+        transition: opacity 0.2s;
+    }
+    .ai-chat-footer button:hover { opacity: 0.8; }
+  
+
+/* Toast profissional */
+#toast {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: #111;
+    color: #fff;
+    border-left: 5px solid #ff6a00;
+    padding: 14px 18px;
+    border-radius: 10px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: .3s ease;
+    z-index: 9999;
+    pointer-events: none;
+    min-width: 260px;
+    max-width: 420px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.45);
+    font-size: 14px;
+}
+
+#toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+</style>
+</head>
+<body>
+  <div class="container">
+    <aside>
+      <div class="logo"><span class="mark">A+</span> Auto+Assis</div>
+      <nav>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="estoque.html" class="active">Estoque</a>
+        <a href="movimentacao.html">Movimentações</a>
+        <a href="servicos.html">Serviços</a>
+        <a href="relatorio.html">Relatórios</a>
+        <a href="consultas.html">Consultas Rápidas</a>
+      </nav>
+      <div class="user">
+        <strong id="nomeGerentePerfil">Administrador</strong><br><small style="color:var(--muted)">Gerente</small>
+      </div>
+      <button id="sairBtn">Sair</button>
+    </aside>
+
+    <main>
+      <h1>Estoque de Peças</h1>
+      <p>Gerencie todas as peças da oficina</p>
+      <div class="actions">
+        <input type="text" id="searchInput" placeholder="Buscar por nome ou código...">
+        <select id="categoriaFilter">
+          <option value="todas">Todas as Categorias</option>
+          <option value="Fluidos">Fluidos</option>
+          <option value="Elétrica">Elétrica</option>
+          <option value="Freios">Freios</option>
+          <option value="Filtros">Filtros</option>
+          <option value="Suspensão">Suspensão</option>
+          <option value="Motor">Motor</option>
+          <option value="Outros">Outros</option>
+        </select>
+        <button id="novaPecaBtn">+ Nova Peça</button>
+      </div>
+      
+      <div class="cards" id="pecasContainer">
+          <div class="cards-loading">Carregando estoque...</div>
+      </div>
+    </main>
+  </div>
+
+  <button class="ai-chat-btn" id="aiToggleBtn" title="Falar com a IA">✨</button>
+  <div class="ai-chat-window" id="aiChatWindow">
+      <div class="ai-chat-header">
+          <span>✨ Assistente de Estoque</span>
+          <button class="ai-chat-close" id="aiCloseBtn">✖</button>
+      </div>
+      <div class="ai-chat-body" id="aiChatBody">
+          <div class="ai-message bot">Olá! Sou a IA integrada à oficina. Pergunte-me sobre a quantidade, localização, categorias ou alertas de peças que estão acabando no estoque.</div>
+      </div>
+      <div class="ai-chat-footer">
+          <input type="text" id="aiInput" placeholder="Ex: Onde está a correia?">
+          <button id="aiSendBtn">Enviar</button>
+      </div>
+  </div>
+
+  <script src="scripts.js"></script>
+  <script>
+    // --- LÓGICA DE PERFIL (Puxa da gaveta do Gerente) ---
+    const nomeLogado = localStorage.getItem('nomeGerenteLogado') || 'Administrador';
+    document.getElementById('nomeGerentePerfil').textContent = nomeLogado;
+
+    document.getElementById("sairBtn").addEventListener("click", () => {
+        window.apiAuth.logout();
+    });
+
+    // Redireciona para a página de criação de peça
+    document.getElementById("novaPecaBtn").addEventListener("click", () => {
+      // Limpa a variável de edição para garantir que abre no modo CRIAÇÃO
+      localStorage.removeItem('pecaEditandoId'); 
+      window.location.href = "criarpeca.html";
+    });
+
+    // Adiciona listeners para acionar o filtro no scripts.js
+    document.getElementById("searchInput").addEventListener("input", () => {
+        if (typeof window.aplicarFiltrosEstoque === 'function') {
+            window.aplicarFiltrosEstoque();
+        }
+    });
+    
+    document.getElementById("categoriaFilter").addEventListener("change", () => {
+        if (typeof window.aplicarFiltrosEstoque === 'function') {
+            window.aplicarFiltrosEstoque();
+        }
+    });
+
+    // ==========================================
+    // LÓGICA JAVASCRIPT DA INTELIGÊNCIA ARTIFICIAL
+    // ==========================================
+    const aiToggleBtn = document.getElementById('aiToggleBtn');
+    const aiChatWindow = document.getElementById('aiChatWindow');
+    const aiCloseBtn = document.getElementById('aiCloseBtn');
+    const aiChatBody = document.getElementById('aiChatBody');
+    const aiInput = document.getElementById('aiInput');
+    const aiSendBtn = document.getElementById('aiSendBtn');
+
+    // Abre e fecha a janela de chat
+    aiToggleBtn.addEventListener('click', () => {
+        aiChatWindow.classList.toggle('active');
+        if(aiChatWindow.classList.contains('active')) aiInput.focus();
+    });
+    aiCloseBtn.addEventListener('click', () => aiChatWindow.classList.remove('active'));
+
+    // Função que cria as bolhas visuais do chat (verde para usuário, escuro para bot)
+    function adicionarMensagem(tipo, texto) {
+        const div = document.createElement('div');
+        div.className = `ai-message ${tipo}`;
+        div.textContent = texto;
+        
+        // Gera um ID para a mensagem (usado para apagar a mensagem de "pensando...")
+        const id = 'msg-' + Date.now();
+        div.id = id;
+
+        aiChatBody.appendChild(div);
+        
+        // Rola automaticamente para a última mensagem
+        aiChatBody.scrollTop = aiChatBody.scrollHeight;
+        
+        return id;
+    }
+
+    // Função que manda a requisição para o seu servidor Node.js (que fala com a IA)
+    async function enviarMensagemIA() {
+        const pergunta = aiInput.value.trim();
+        if (!pergunta) return;
+
+        // 1. Imprime a pergunta do mecânico e limpa o campo
+        adicionarMensagem('user', pergunta);
+        aiInput.value = '';
+
+        // 2. Coloca um aviso visual de que a IA está raciocinando
+        const idPensando = adicionarMensagem('bot', 'A ler o banco de dados do estoque...');
+
+        try {
+            // 3. Dispara a pergunta para a nova rota que você criou no server.js
+            const resposta = await fetch('http://localhost:3000/api/ia-estoque', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pergunta: pergunta })
+            });
+
+            const dados = await resposta.json();
+            
+            // 4. Apaga o "A ler o banco..."
+            document.getElementById(idPensando).remove();
+            
+            // 5. Imprime a resposta oficial na tela
+            if (resposta.ok) {
+                adicionarMensagem('bot', dados.resposta);
+            } else {
+                adicionarMensagem('bot', dados.erro || 'Desculpe, a IA está indisponível.');
+            }
+        } catch (erro) {
+            document.getElementById(idPensando).remove();
+            adicionarMensagem('bot', '❌ Sem conexão com a API. Certifique-se de que ligou o seu servidor Node.js no terminal!');
+        }
+    }
+
+    // Permite disparar a mensagem apertando a tecla "Enter"
+    aiInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') enviarMensagemIA();
+    });
+    
+    // Dispara a mensagem clicando no botão enviar
+    aiSendBtn.addEventListener('click', enviarMensagemIA);
+  </script>
+
+  <div id="toast"></div>
+<script>
+
+function mostrarToast(texto) {
+    let toast = document.getElementById('toast');
+
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toast';
+        document.body.appendChild(toast);
+    }
+
+    toast.textContent = texto;
+    toast.classList.add('show');
+
+    clearTimeout(window.__toastTimer);
+    window.__toastTimer = setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
+}
+
+</script>
+</body>
+</html>

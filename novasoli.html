@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Nova Solicitação — Auto+Assis</title>
+    <style>
+        :root { --bg:#0a0a0a; --panel:#0f0f0f; --accent:#ff6a00; --white:#ffffff; --muted:#888; font-family: Inter, sans-serif; }
+        body { background: var(--bg); color: var(--white); display: flex; height: 100vh; margin: 0; }
+        aside { width: 260px; background: var(--panel); padding: 20px; display: flex; flex-direction: column; border-right: 1px solid #1a1a1a; }
+        main { flex: 1; padding: 40px; overflow-y: auto; }
+        .form-box { background: var(--panel); padding: 30px; border-radius: 12px; border: 1px solid #333; max-width: 800px; }
+        .row { display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
+        .field { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 200px; }
+        label { font-size: 14px; font-weight: bold; color: var(--accent); }
+        input, textarea, select { background: #000; color: #fff; border: 1px solid #444; padding: 12px; border-radius: 8px; outline: none; }
+        input:focus { border-color: var(--accent); }
+        .btn-send { background: var(--accent); color: white; border: none; padding: 15px 30px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 20px; }
+        .btn-cancel { background: none; color: #555; border: none; cursor: pointer; margin-top: 10px; width: 100%; }
+    
+
+/* Toast profissional */
+#toast {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: #111;
+    color: #fff;
+    border-left: 5px solid #ff6a00;
+    padding: 14px 18px;
+    border-radius: 10px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: .3s ease;
+    z-index: 9999;
+    pointer-events: none;
+    min-width: 260px;
+    max-width: 420px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.45);
+    font-size: 14px;
+}
+
+#toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+</style>
+  <script src="auth.js"></script>
+</head>
+<body>
+    <aside>
+        <h2 style="color:var(--accent)">A+ Auto+Assis</h2>
+        <p style="font-size: 0.8em; color: #555;">Painel do Cliente</p>
+    </aside>
+
+    <main>
+        <h1>Nova Solicitação de Serviço</h1>
+        <p style="color:var(--muted)">Descreva o problema do seu veículo para iniciarmos o atendimento.</p>
+
+        <form id="formSolicitacao" class="form-box">
+            <div class="row">
+                <div class="field">
+                    <label>Seu Nome Completo *</label>
+                    <input type="text" id="nomeCliente" required>
+                </div>
+                <div class="field">
+                    <label>Telefone *</label>
+                    <input type="text" id="telefone" placeholder="(00) 00000-0000" required>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="field">
+                    <label>Veículo (Marca/Modelo) *</label>
+                    <input type="text" id="veiculo" placeholder="Ex: Onix 1.0" required>
+                </div>
+                <div class="field">
+                    <label>Ano</label>
+                    <input type="number" id="ano" placeholder="Ex: 2018">
+                </div>
+                <div class="field">
+                    <label>Placa *</label>
+                    <input type="text" id="placa" placeholder="ABC-1234" required>
+                </div>
+            </div>
+
+            <div class="field">
+                <label>Descreva o Problema *</label>
+                <textarea id="problema" rows="4" placeholder="O que está acontecendo com o carro?" required></textarea>
+            </div>
+
+            <div class="field" style="margin-top:20px;">
+                <label>Nível de Urgência</label>
+                <select id="urgencia">
+                    <option value="Baixa">Baixa - Revisão de rotina</option>
+                    <option value="Média">Média - Barulho ou falha leve</option>
+                    <option value="Alta">Alta - Carro parado ou risco</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn-send" id="btnSubmit">Enviar Solicitação 🚀</button>
+            <button type="button" class="btn-cancel" onclick="window.location.href='cliente.html'">Cancelar</button>
+        </form>
+    </main>
+
+    <script>
+        const usuarioAtual = window.apiAuth.requireAuth('cliente');
+
+        const form = document.getElementById('formSolicitacao');
+        const btnSubmit = document.getElementById('btnSubmit');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Trava de Segurança
+            const emailLogado = localStorage.getItem('emailUsuario');
+
+            if (!emailLogado) {
+                mostrarToast("Erro de segurança: E-mail do usuário não encontrado. Por favor, faça o login novamente.");
+                window.location.href = 'login.html'; // Manda de volta pro login
+                return; // Para a execução aqui e não envia pro Node.js
+            }
+
+            const dados = {
+                nomeCliente: document.getElementById('nomeCliente').value,
+                emailCliente: emailLogado,
+                telefone: document.getElementById('telefone').value,
+                veiculo: document.getElementById('veiculo').value,
+                ano: document.getElementById('ano').value,
+                placa: document.getElementById('placa').value,
+                problema: document.getElementById('problema').value,
+                urgencia: document.getElementById('urgencia').value,
+                status: 'Pendente',
+                dataCriacao: new Date().toISOString()
+            };
+
+            btnSubmit.textContent = "Enviando...";
+            btnSubmit.disabled = true;
+
+            try {
+                const resposta = await window.apiAuth.fetch('/api/solicitacoes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dados)
+                });
+
+                const dadosResposta = await resposta.json().catch(() => ({}));
+
+                if (!resposta.ok) {
+                    throw new Error(
+                        dadosResposta.erro || 'Erro ao enviar solicitação.'
+                    );
+                }
+
+                mostrarToast('✅ Solicitação enviada com sucesso!');
+                setTimeout(() => {
+                    window.location.href = '/cliente.html';
+                }, 700);
+            } catch (erro) {
+                console.error('Erro ao enviar solicitação:', erro);
+                mostrarToast(`❌ ${erro.message}`);
+                btnSubmit.disabled = false;
+                btnSubmit.textContent = 'Enviar Solicitação 🚀';
+            }
+        });
+
+        // Preenche o nome automaticamente se estiver no localStorage
+        const nomeSalvo = localStorage.getItem('nomeUsuario');
+        if (nomeSalvo) document.getElementById('nomeCliente').value = nomeSalvo;
+    </script>
+
+  <div id="toast"></div>
+<script>
+
+function mostrarToast(texto) {
+    let toast = document.getElementById('toast');
+
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toast';
+        document.body.appendChild(toast);
+    }
+
+    toast.textContent = texto;
+    toast.classList.add('show');
+
+    clearTimeout(window.__toastTimer);
+    window.__toastTimer = setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
+}
+
+</script>
+</body>
+</html>

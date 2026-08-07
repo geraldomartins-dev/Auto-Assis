@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <script src="auth.js"></script>
+  <title>Criar/Editar Peça — Auto+Assis</title>
+  <style>
+    :root{
+      --bg:#0a0a0a; --panel:#0f0f0f; --accent:#ff6a00; --white:#ffffff;
+      --muted:#cccccc; --success:#22c55e; --danger:#ff4d4d; --radius:12px;
+      --shadow:0 8px 30px rgba(0,0,0,0.6);
+      font-family:Inter,system-ui,sans-serif;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:var(--bg);color:var(--white);font-family:Inter,sans-serif;}
+    .container{display:flex;height:100vh;}
+    aside{width:260px;background:var(--panel);padding:24px;display:flex;flex-direction:column;gap:18px;}
+    aside .logo{display:flex;align-items:center;gap:12px;font-weight:700;}
+    aside .logo .mark{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#ffa257);display:flex;align-items:center;justify-content:center;color:var(--bg);font-weight:800;}
+    aside nav{flex:1;display:flex;flex-direction:column;gap:12px;}
+    aside nav a{display:block;padding:10px 14px;border-radius:10px;color:var(--white);text-decoration:none;}
+    aside nav a.active, aside nav a:hover{background:rgba(255,106,0,0.2);}
+    main{flex:1;padding:24px;overflow-y:auto;}
+    .form-box{background:var(--panel);padding:24px;border-radius:var(--radius);box-shadow:var(--shadow);display:flex;flex-direction:column;gap:20px;max-width:600px;margin-top:12px;}
+    .row{display:flex;gap:18px;flex-wrap:wrap;}
+    .field{flex:1;display:flex;flex-direction:column;gap:6px;min-width:240px;}
+    .field label{font-size:14px;color:var(--white);}
+    .field input, .field select, .field textarea{
+      padding:12px;border-radius:10px;border:none;background:#141414;color:var(--white);
+      outline:none;border:1px solid rgba(255,255,255,0.1);
+    }
+    .field textarea{resize:vertical;min-height:90px;line-height:1.5;}
+    .buttons{display:flex;justify-content:flex-end;gap:12px;margin-top:12px;}
+    .buttons button{padding:10px 18px;border-radius:10px;border:none;cursor:pointer;transition:0.2s;}
+    .cancel{background:rgba(255,255,255,0.1);color:var(--white);}
+    .save{background:linear-gradient(90deg,var(--accent),#ff8a3d);color:var(--white);font-weight:bold;}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <aside>
+      <div class="logo"><span class="mark">A+</span> Auto+Assis</div>
+      <nav>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="estoque.html" class="active">Estoque</a>
+        <a href="movimentacao.html">Movimentações</a>
+        <a href="servicos.html">Serviços</a>
+        <a href="relatorio.html">Relatórios</a>
+        <a href="consultas.html">Consultas Rápidas</a>
+      </nav>
+      <div class="user"><strong></strong><br>Gerente</div>
+      <button onclick="window.location.href='login.html'" style="background:rgba(255,77,77,0.2); color:#ff4d4d; border:none; padding:10px; border-radius:10px; cursor:pointer;">Sair</button>
+    </aside>
+
+    <main>
+      <h1 id="pageTitle">Criar Nova Peça</h1>
+      <p id="pageLead">Preencha os dados da peça para adicionar ao estoque.</p>
+      
+      <form id="pecaForm" class="form-box">
+        <div class="row">
+            <div class="field" style="flex: 2;">
+                <label for="nome">Nome da Peça *</label>
+                <input id="nome" type="text" placeholder="Ex: Filtro de Óleo" required>
+            </div>
+            <div class="field" style="flex: 1;">
+                <label for="pecaId">ID do Sistema</label>
+                <input id="pecaId" type="text" placeholder="Automático" disabled style="background:#1e1e1e; color:#888;">
+            </div>
+        </div>
+
+        <div class="field">
+            <label for="descricao">Descrição da Peça</label>
+            <textarea id="descricao" placeholder="Ex: Compatível com motores 1.0, usado em revisão preventiva..."></textarea>
+        </div>
+
+        <div class="row">
+            <div class="field">
+                <label for="categoria">Categoria *</label>
+                <select id="categoria" required>
+                  <option value="">Selecione a Categoria</option>
+                  <option>Fluidos</option>
+                  <option>Elétrica</option>
+                  <option>Freios</option>
+                  <option>Filtros</option>
+                  <option>Suspensão</option>
+                  <option>Motor</option>
+                  <option>Outros</option>
+                </select>
+            </div>
+            <div class="field">
+                <label for="localizacao">Localização</label>
+                <input id="localizacao" type="text" placeholder="Ex: Prateleira B2">
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="field">
+                <label for="quantidade">Qtd. Inicial/Atual *</label>
+                <input id="quantidade" type="number" min="0" value="1" required>
+            </div>
+            <div class="field">
+                <label for="min">Qtd. Mínima (Alerta)</label>
+                <input id="min" type="number" min="0" value="5">
+            </div>
+        </div>
+        
+        <div class="field">
+            <label for="preco">Preço Unitário (R$)</label>
+            <input id="preco" type="number" step="0.01" value="0.00">
+        </div>
+
+        <div class="buttons">
+          <button type="button" class="cancel" onclick="window.location.href='estoque.html'">Cancelar</button>
+          <button type="submit" class="save" id="submitBtn">Salvar Peça</button>
+        </div>
+      </form>
+    </main>
+  </div>
+
+  <script>
+    const form = document.getElementById('pecaForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const pageTitle = document.getElementById('pageTitle');
+    const pageLead = document.getElementById('pageLead');
+    
+    // Recupera o ID da peça que queremos editar (se houver)
+    const pecaEditandoId = localStorage.getItem('pecaEditandoId');
+
+    // Ao carregar a página, se houver um ID, busca os dados no banco
+    window.addEventListener('load', async () => {
+        if (pecaEditandoId) {
+            pageTitle.textContent = "Editar Peça";
+            pageLead.textContent = "Altere as informações abaixo para atualizar o estoque.";
+            submitBtn.textContent = "Atualizar Peça";
+
+            try {
+                const resposta = await fetch('http://localhost:3000/api/pecas');
+                const pecas = await resposta.json();
+                const peca = pecas.find(p => p.id == pecaEditandoId);
+
+                if (peca) {
+                    document.getElementById('nome').value = peca.nome;
+                    document.getElementById('descricao').value = peca.descricao || '';
+                    document.getElementById('pecaId').value = peca.id; // Mostra o ID real
+                    document.getElementById('categoria').value = peca.categoria;
+                    document.getElementById('localizacao').value = peca.localizacao;
+                    document.getElementById('quantidade').value = peca.quantidade;
+                    document.getElementById('min').value = peca.min;
+                    document.getElementById('preco').value = peca.preco;
+                }
+            } catch (erro) {
+                console.error("Erro ao carregar dados da peça:", erro);
+            }
+        }
+    });
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const pecaData = {
+            nome: document.getElementById('nome').value.trim(),
+            descricao: document.getElementById('descricao').value.trim(),
+            categoria: document.getElementById('categoria').value,
+            localizacao: document.getElementById('localizacao').value.trim(),
+            quantidade: parseInt(document.getElementById('quantidade').value),
+            min: parseInt(document.getElementById('min').value),
+            preco: parseFloat(document.getElementById('preco').value) || 0.00,
+        };
+
+        submitBtn.textContent = "A guardar...";
+        submitBtn.disabled = true;
+
+        // Se estiver editando, usa o método PUT e o ID na URL. Se não, usa POST.
+        const url = pecaEditandoId ? `http://localhost:3000/api/pecas/${pecaEditandoId}` : 'http://localhost:3000/api/pecas';
+        const method = pecaEditandoId ? 'PUT' : 'POST';
+
+        try {
+            const resposta = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(pecaData)
+            });
+
+            if (resposta.ok) {
+                alert(pecaEditandoId ? "✅ Peça atualizada!" : "✅ Peça cadastrada!");
+                localStorage.removeItem('pecaEditandoId'); // Limpa após terminar
+                window.location.href = 'estoque.html';
+            } else {
+                alert("❌ Erro ao salvar dados.");
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Salvar Peça";
+            }
+        } catch (erro) {
+            console.error("Erro:", erro);
+            alert("Não foi possível conectar ao servidor.");
+            submitBtn.disabled = false;
+        }
+    });
+</script>
+</body>
+</html>

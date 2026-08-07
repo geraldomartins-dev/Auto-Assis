@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <title>Gerenciar Solicitação — Auto+Assis</title>
+    <style>
+        :root { --bg:#0a0a0a; --panel:#0f0f0f; --accent:#ff6a00; --white:#ffffff; --radius:12px; font-family: Inter, sans-serif; }
+        body { background: var(--bg); color: var(--white); padding: 40px; display: flex; justify-content: center; }
+        .card { background: var(--panel); padding: 30px; border-radius: var(--radius); width: 100%; max-width: 600px; border: 1px solid #333; }
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+        button { padding: 12px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; flex: 1; min-width: 150px; }
+        
+        .btn-analise { background: #1e88e5; color: white; }
+        .btn-orcamento { background: #ff6a00; color: white; }
+        .btn-iniciar { background: #f59e0b; color: black; } 
+        .btn-concluir { background: #22c55e; color: white; } 
+        .btn-rejeitar { background: #ff4d4d; color: white; }
+        
+        input { width: 100%; padding: 10px; margin-top: 10px; border-radius: 8px; border: 1px solid #444; background: #000; color: #fff; }
+        .status-tag { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 0.8em; background: #333; margin-bottom: 10px; font-weight: bold;}
+    </style>
+  <script src="auth.js"></script>
+</head>
+<body>
+    <div class="card" id="detalhesSolicitacao">
+        <div style="display: flex; gap: 10px;">
+            <div id="statusAtual" class="status-tag">Carregando status...</div>
+            <div id="urgenciaAtual" class="status-tag" style="display: none;"></div>
+        </div>
+        
+        <h1 id="clienteNome">Carregando...</h1>
+        <p id="veiculoInfo"></p>
+        <hr style="margin: 20px 0; border: 0; border-top: 1px solid #333;">
+        
+        <p><strong>Problema relatado:</strong></p>
+        <p id="problemaDesc"></p>
+
+        <div id="areaOrcamento" style="margin-top: 20px; display: none;">
+            <label>Valor do Orçamento (R$):</label>
+            <input type="number" id="valorOrcamento" placeholder="0.00">
+        </div>
+
+        <div class="btn-group" id="containerBotoes">
+            </div>
+        
+        <button onclick="window.location.href='servicos.html'" style="background:none; color:#888; margin-top:20px; font-size: 0.9em; width: 100%;">⬅ Voltar para a lista</button>
+    </div>
+
+    <script>
+        window.apiAuth.requireAuth('gerente');
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const idRaw = urlParams.get('id');
+        const idSolicitacao = idRaw ? idRaw.replace(/\D/g, '') : null;
+        let dadosDoServico = {};
+
+        async function carregarDados() {
+            if (!idSolicitacao) {
+                alert("ID da solicitação não encontrado.");
+                return window.location.href = 'servicos.html';
+            }
+
+            try {
+                const res = await window.apiAuth.fetch('/api/solicitacoes');
+                const dados = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    throw new Error(dados.erro || 'Erro ao carregar a solicitação.');
+                }
+                const soli = dados.find(s => s.id == idSolicitacao);
+
+                if (soli) {
+                    dadosDoServico = soli; 
+
+                    document.getElementById('clienteNome').textContent = soli.nomeCliente;
+                    document.getElementById('veiculoInfo').textContent = `${soli.veiculo} - ${soli.placa}`;
+                    document.getElementById('problemaDesc').textContent = soli.problema;
+                    document.getElementById('statusAtual').textContent = `Status Atual: ${soli.status}`;
+                    
+                    // MOSTRA A URGÊNCIA EM DESTAQUE NO TOPO
+                    if (soli.urgencia) {
+                        const urgEl = document.getElementById('urgenciaAtual');
+                        urgEl.style.display = 'inline-block';
+                        urgEl.textContent = `🚨 Urgência: ${soli.urgencia}`;
+                        
+                        if (soli.urgencia === 'Alta' || soli.urgencia === 'Urgente') urgEl.style.background = 'var(--danger)';
+                        else if (soli.urgencia === 'Média') urgEl.style.background = '#f59e0b';
+                        else if (soli.urgencia === 'Baixa') urgEl.style.background = '#1e88e5';
+                    }
+                    
+                    renderizarBotoes(soli);
+                }
+            } catch (err) { console.error("Erro ao carregar dados:", err); }
+        }
+
+        function renderizarBotoes(soli) {
+            const container = document.getElementById('containerBotoes');
+            container.innerHTML = ''; 
+
+            if (soli.status === 'Pendente' || soli.status === 'Em Análise') {
+                container.innerHTML = `
+                    <button class="btn-analise" onclick="atualizarStatus('Em Análise')">Colocar em Análise</button>
+                    <button class="btn-orcamento" id="btnOrcamentoBase" onclick="mostrarOrcamento()">Enviar Orçamento</button>
+                    <button class="btn-rejeitar" onclick="atualizarStatus('Rejeitado')">Rejeitar</button>
+                `;
+            } 
+            else if (soli.status === 'Aprovado') {
+                container.innerHTML = `
+                    <button class="btn-iniciar" onclick="atualizarStatus('Em Andamento')">▶️ Iniciar Serviço</button>
+                `;
+            } 
+            else if (soli.status === 'Em Andamento') {
+                container.innerHTML = `
+                    <button class="btn-concluir" onclick="atualizarStatus('Concluído')">✅ Finalizar Serviço</button>
+                `;
+            }
+            else {
+                container.innerHTML = `<p style="color:#888; width:100%; text-align:center;">Serviço Finalizado.</p>`;
+            }
+        }
+
+        function mostrarOrcamento() {
+            document.getElementById('areaOrcamento').style.display = 'block';
+            const btn = document.getElementById('btnOrcamentoBase');
+            btn.textContent = "Confirmar Valor";
+            btn.onclick = finalizarOrcamento;
+        }
+
+        async function atualizarStatus(novoStatus, custo = null) {
+            try {
+                const custoFinal = custo !== null ? custo : dadosDoServico.custoSugerido;
+                const osFinal = dadosDoServico.osNumero;
+
+                const res = await window.apiAuth.fetch(`/api/solicitacoes/${idSolicitacao}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        status: novoStatus, 
+                        custoSugerido: custoFinal,
+                        osNumero: osFinal
+                    })
+                });
+
+                const resposta = await res.json().catch(() => ({}));
+
+                if (!res.ok) {
+                    throw new Error(resposta.erro || 'Erro ao atualizar o status.');
+                }
+
+                alert(`Status alterado para: ${novoStatus}`);
+                window.location.href = '/servicos.html';
+            } catch (err) {
+                console.error('Erro ao atualizar serviço:', err);
+                alert(`❌ ${err.message}`);
+            }
+        }
+
+        async function finalizarOrcamento() {
+            const valor = document.getElementById('valorOrcamento').value;
+            if(!valor || valor <= 0) return alert("Digite um valor válido.");
+            await atualizarStatus('Aguardando Aprovação', valor);
+        }
+
+        carregarDados();
+    </script>
+</body>
+</html>

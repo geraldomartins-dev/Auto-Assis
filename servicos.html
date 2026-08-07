@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <script src="auth.js"></script>
+    <title>Serviços — Auto+Assis</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        :root{ --bg:#0a0a0a; --panel:#0f0f0f; --accent:#ff6a00; --white:#ffffff; --muted:#cccccc; --success:#22c55e; --danger:#ff4d4d; --info:#1e88e5; --radius:12px; font-family:Inter,sans-serif; }
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{background:var(--bg);color:var(--white);display:flex;height:100vh;}
+        aside{width:260px;background:var(--panel);padding:24px;display:flex;flex-direction:column;gap:18px; border-right: 1px solid #1a1a1a;}
+        aside .logo{display:flex;align-items:center;gap:12px;font-weight:700;}
+        aside .logo .mark{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#ffa257);display:flex;align-items:center;justify-content:center;color:var(--bg);font-weight:800;}
+        aside nav{flex:1;display:flex;flex-direction:column;gap:12px;}
+        aside nav a{display:block;padding:10px 14px;border-radius:10px;color:var(--white); text-decoration:none;}
+        aside nav a.active, aside nav a:hover{background:rgba(255,106,0,0.2); color:var(--accent);}
+        main{flex:1;padding:30px;overflow-y:auto;}
+        
+        .header-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; flex-wrap: wrap; gap: 15px; }
+        .header-top h1 { margin-bottom: 5px; }
+        
+        .btn-group { display: flex; gap: 10px; }
+        .btn-top { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; color: white; transition: 0.2s; }
+        .btn-atualizar { background: #333; }
+        .btn-atualizar:hover { background: #444; }
+        .btn-nova-os { background: var(--success); }
+        .btn-nova-os:hover { opacity: 0.8; }
+
+        .card-servico { background: var(--panel); padding: 20px; border-radius: var(--radius); margin-bottom: 15px; border-left: 5px solid #333; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #1a1a1a; border-right: 1px solid #1a1a1a; border-bottom: 1px solid #1a1a1a;}
+        .card-servico h3 { color: var(--accent); margin-bottom: 5px; }
+        .card-servico p { color: var(--muted); font-size: 0.9em; margin-bottom: 5px; }
+        
+        /* Botões do Card */
+        .btn-gerenciar { background: #333; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; text-decoration: none; display: inline-block;}
+        .btn-gerenciar:hover { background: var(--accent); }
+        
+        .btn-pdf { background: rgba(30, 136, 229, 0.2); color: var(--info); padding: 10px 20px; border: 1px solid var(--info); border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; margin-left: 10px; }
+        .btn-pdf:hover { background: var(--info); color: white; }
+
+        .btn-ocultar { background: #444; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; margin-left: 10px; }
+        .btn-ocultar:hover { background: #222; }
+        
+        /* Cores de Status */
+        .border-pendente { border-left-color: #ff6a00; }
+        .border-analise { border-left-color: #1e88e5; }
+        .border-aprovado { border-left-color: #22c55e; }
+        .border-andamento { border-left-color: #f59e0b; }
+        .border-concluido { border-left-color: #888; opacity: 0.7; }
+
+        .status-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; background: rgba(255,255,255,0.1); color: white; }
+    
+/* Toast profissional */
+#toast {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: #111;
+    color: #fff;
+    border-left: 5px solid #ff6a00;
+    padding: 14px 18px;
+    border-radius: 10px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: .3s ease;
+    z-index: 9999;
+    pointer-events: none;
+    min-width: 260px;
+    max-width: 420px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.45);
+    font-size: 14px;
+}
+
+#toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+</style>
+</head>
+<body>
+    <aside>
+        <div class="logo"><span class="mark">A+</span> Auto+Assis</div>
+        <nav>
+            <a href="dashboard.html">Dashboard</a>
+            <a href="estoque.html">Estoque</a>
+            <a href="movimentacao.html">Movimentações</a>
+            <a href="servicos.html" class="active">Serviços</a>
+            <a href="relatorio.html">Relatórios</a>
+        <a href="consultas.html">Consultas Rápidas</a>
+        </nav>
+        
+        <div style="margin-top:auto; background: #1a1a1a; padding: 15px; border-radius: 10px; text-align: center;">
+            <strong id="nomeGerentePerfil">Administrador</strong><br>
+            <small style="color:var(--muted)">Gerente</small>
+        </div>
+        
+        <button onclick="window.location.href='login.html'" style="margin-top:10px; padding:10px; border:none; border-radius:10px; background:rgba(255,77,77,0.2); color:var(--danger); cursor:pointer;">Sair</button>
+    </aside>
+
+    <main>
+        <div class="header-top">
+            <div>
+                <h1>Painel de Serviços</h1>
+                <p style="color:var(--muted);">Faça a gestão das solicitações e ordens de serviço da oficina.</p>
+            </div>
+            <div class="btn-group">
+                <button class="btn-top btn-atualizar" onclick="carregarServicos()">🔄 Atualizar Lista</button>
+                <button class="btn-top btn-nova-os" onclick="window.location.href='novaos.html'">+ Nova OS Presencial</button>
+            </div>
+        </div>
+
+        <div id="listaServicos">
+            <p>A carregar serviços da base de dados...</p>
+        </div>
+    </main>
+
+    <script>
+        // Lógica de perfil atualizada para a gaveta do Gerente
+        const nomeLogado = localStorage.getItem('nomeGerenteLogado') || 'Administrador';
+        document.getElementById('nomeGerentePerfil').textContent = nomeLogado;
+
+        // Variavel global para guardar os serviços e podermos gerar o PDF deles
+        let todosOsServicos = [];
+
+        async function carregarServicos() {
+            const container = document.getElementById('listaServicos');
+            try {
+                const res = await fetch('http://localhost:3000/api/solicitacoes');
+                const dados = await res.json();
+                
+                // Filtra para não mostrar os arquivados na tela de serviços ativos
+               const ocultos = JSON.parse(localStorage.getItem('ocultosGerente')) || [];
+            const dadosVisiveis = dados.filter(s => !ocultos.includes(s.id.toString()));
+                todosOsServicos = dadosVisiveis;
+                container.innerHTML = '';
+
+                // Ordena os serviços que vão aparecer na tela
+                dadosVisiveis.sort((a, b) => {
+                    if (a.status === 'Concluído') return 1;
+                    if (b.status === 'Concluído') return -1;
+                    return 0;
+                });
+
+                if (dadosVisiveis.length === 0) {
+                    container.innerHTML = '<p style="color:var(--muted)">Nenhum serviço pendente ou ativo na sua lista.</p>';
+                    return;
+                }
+
+                // Renderiza cada serviço na tela
+                dadosVisiveis.forEach(s => {
+                    let classeBorda = 'border-pendente';
+                    if (s.status === 'Em Análise' || s.status === 'Aguardando Aprovação') classeBorda = 'border-analise';
+                    if (s.status === 'Aprovado') classeBorda = 'border-aprovado';
+                    if (s.status === 'Em Andamento') classeBorda = 'border-andamento';
+                    if (s.status === 'Concluído' || s.status === 'Rejeitado') classeBorda = 'border-concluido';
+
+                    let corUrgencia = '#333'; 
+                    if (s.urgencia === 'Alta' || s.urgencia === 'Urgente') corUrgencia = 'var(--danger)';
+                    else if (s.urgencia === 'Média') corUrgencia = '#f59e0b';
+                    else if (s.urgencia === 'Baixa') corUrgencia = '#1e88e5';
+
+                    let badgeUrgencia = s.urgencia ? `<span class="status-badge" style="background:${corUrgencia}; margin-left:10px;">🚨 Urgência: ${s.urgencia}</span>` : '';
+
+                    let botoesAcao = `
+                        <a href="gerenciar_solicitacao.html?id=${s.id}" class="btn-gerenciar">Gerenciar</a>
+                        <button onclick="gerarPDF(${s.id})" class="btn-pdf">📄 Gerar PDF</button>
+                    `;
+                    
+                    // BOTÃO DE ARQUIVAR (Só aparece se concluído ou rejeitado)
+                    if (s.status === 'Concluído' || s.status === 'Rejeitado') {
+                        botoesAcao += `<button onclick="ocultarServico(${s.id})" class="btn-ocultar">DELETAR</button>`;
+                    }
+
+                    const card = document.createElement('div');
+                    card.className = `card-servico ${classeBorda}`;
+                    
+                    card.innerHTML = `
+                        <div>
+                            <h3>${s.veiculo} (Placa: ${s.placa})</h3>
+                            <p><strong>Cliente:</strong> ${s.nomeCliente} | <strong>Protocolo:</strong> SOL-${s.id}</p>
+                            <p><strong>Problema:</strong> ${s.problema}</p>
+                            <div style="margin-top: 10px;">
+                                <span class="status-badge">${s.status}</span>
+                                ${s.osNumero ? `<span class="status-badge" style="background:var(--accent); margin-left:10px;">${s.osNumero}</span>` : ''}
+                                ${badgeUrgencia}
+                            </div>
+                        </div>
+                        <div>
+                            ${botoesAcao}
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            } catch (erro) {
+                container.innerHTML = '<p style="color:red;">Erro ao ligar ao servidor Node.js.</p>';
+            }
+        }
+
+        // ==========================================
+        // NOVA MÁGICA: FUNÇÃO DE ARQUIVAR (SOFT DELETE)
+        // ==========================================
+        function ocultarServico(id) {
+    if (!confirm("Deseja apagar este serviço da sua tela?")) return;
+
+    const ocultos = JSON.parse(localStorage.getItem('ocultosGerente')) || [];
+
+    if (!ocultos.includes(id.toString())) {
+        ocultos.push(id.toString());
+    }
+
+    localStorage.setItem('ocultosGerente', JSON.stringify(ocultos));
+    mostrarToast("Serviço apagado com sucesso!");
+    carregarServicos();
+}
+        // ==========================================
+        // MÁGICA: FUNÇÃO DE GERAÇÃO DE PDF
+        // ==========================================
+        function gerarPDF(idServico) {
+            const servico = todosOsServicos.find(s => s.id === idServico);
+            if (!servico) return mostrarToast('Serviço não encontrado!');
+
+            const dataAtual = new Date().toLocaleDateString('pt-BR');
+
+            const elementoPDF = document.createElement('div');
+            elementoPDF.style.padding = '40px';
+            elementoPDF.style.background = '#ffffff';
+            elementoPDF.style.color = '#000000';
+            elementoPDF.style.fontFamily = 'Arial, sans-serif';
+            
+            elementoPDF.innerHTML = `
+                <div style="border-bottom: 2px solid #ff6a00; padding-bottom: 20px; margin-bottom: 20px; text-align: center;">
+                    <h1 style="color: #ff6a00; margin: 0; font-size: 28px;">Auto+Assis Oficina</h1>
+                    <p style="margin: 5px 0 0 0; color: #555; font-size: 14px;">CNPJ: 00.000.000/0001-00 | Telefone: (00) 0000-0000</p>
+                    <h2 style="margin-top: 15px; color: #333;">Ordem de Serviço Nº ${servico.id}</h2>
+                </div>
+                
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 14px;">
+                    <tr>
+                        <td style="padding: 10px; border: 1px solid #ccc; background: #f9f9f9; width: 50%;"><strong>Cliente:</strong> ${servico.nomeCliente}</td>
+                        <td style="padding: 10px; border: 1px solid #ccc; background: #f9f9f9;"><strong>Data da Emissão:</strong> ${dataAtual}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px; border: 1px solid #ccc;"><strong>Veículo:</strong> ${servico.veiculo}</td>
+                        <td style="padding: 10px; border: 1px solid #ccc;"><strong>Placa:</strong> ${servico.placa}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px; border: 1px solid #ccc; background: #f9f9f9;"><strong>Urgência:</strong> ${servico.urgencia || 'Normal'}</td>
+                        <td style="padding: 10px; border: 1px solid #ccc; background: #f9f9f9;"><strong>Status Atual:</strong> ${servico.status}</td>
+                    </tr>
+                </table>
+
+                <div style="border: 1px solid #ccc; padding: 15px; border-radius: 5px; margin-bottom: 60px; min-height: 120px;">
+                    <h3 style="margin-top: 0; margin-bottom: 10px; color: #333; font-size: 16px;">Descrição do Problema Relatado:</h3>
+                    <p style="font-size: 14px; line-height: 1.5; color: #444;">${servico.problema}</p>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; text-align: center; margin-top: 100px;">
+                    <div style="width: 45%;">
+                        <hr style="border: 1px solid #000; margin-bottom: 5px;">
+                        <p style="font-size: 14px; color: #333;">Assinatura do Cliente</p>
+                    </div>
+                    <div style="width: 45%;">
+                        <hr style="border: 1px solid #000; margin-bottom: 5px;">
+                        <p style="font-size: 14px; color: #333;">Assinatura do Responsável (Auto+Assis)</p>
+                    </div>
+                </div>
+            `;
+
+            const opcoes = {
+                margin:       10,
+                filename:     `OS_${servico.placa}_AutoAssis.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().set(opcoes).from(elementoPDF).save();
+        }
+
+        carregarServicos();
+    </script>
+
+  <div id="toast"></div>
+<script>
+
+function mostrarToast(texto) {
+    let toast = document.getElementById('toast');
+
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toast';
+        document.body.appendChild(toast);
+    }
+
+    toast.textContent = texto;
+    toast.classList.add('show');
+
+    clearTimeout(window.__toastTimer);
+    window.__toastTimer = setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
+}
+
+</script>
+</body>
+</html>

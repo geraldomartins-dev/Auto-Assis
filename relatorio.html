@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <script src="auth.js"></script>
+  <title>Relatórios — Auto+Assis</title>
+  <style>
+    :root{
+      --bg:#0a0a0a; --panel:#0f0f0f; --accent:#ff6a00; --white:#ffffff;
+      --muted:#cccccc; --success:#22c55e; --danger:#ff4d4d; --radius:12px;
+      --shadow:0 8px 30px rgba(0,0,0,0.6);
+      font-family:Inter,system-ui,sans-serif;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:var(--bg);color:var(--white);font-family:Inter,sans-serif;}
+    .container{display:flex;height:100vh;}
+    aside{width:260px;background:var(--panel);padding:24px;display:flex;flex-direction:column;gap:18px;}
+    aside .logo{display:flex;align-items:center;gap:12px;font-weight:700;}
+    aside .logo .mark{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#ffa257);display:flex;align-items:center;justify-content:center;color:var(--bg);font-weight:800;}
+    aside nav{flex:1;display:flex;flex-direction:column;gap:12px;}
+    aside nav a{display:block;padding:10px 14px;border-radius:10px;color:var(--white);text-decoration:none;}
+    aside nav a.active, aside nav a:hover{background:rgba(255,106,0,0.2);color:var(--accent);}
+    main{flex:1;padding:24px;overflow-y:auto;}
+    .summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;margin-bottom:24px;}
+    .summary .card{background:var(--panel);padding:18px;border-radius:var(--radius);box-shadow:var(--shadow);}
+    .summary .value{font-size:32px;font-weight:700;margin-bottom:4px;}
+    .green{color:var(--success);}
+    .red{color:var(--danger);}
+    .filter{background:var(--panel);padding:18px;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:24px;}
+    .filter input{padding:10px;border-radius:8px;border:1px solid #333;background:#000;color:white;margin-right:10px;}
+    .filter button{padding:10px 20px;border:none;border-radius:8px;background:var(--accent);color:white;font-weight:bold;cursor:pointer;}
+  
+  * {
+    transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        border 0.2s ease,
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.card,
+.kpi-card,
+.servico-card,
+.peca-card {
+    box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+}
+
+.card:hover,
+.kpi-card:hover,
+.servico-card:hover,
+.peca-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 28px rgba(255,106,0,0.15);
+}
+
+button {
+    transition: all .2s ease;
+}
+
+button:hover {
+    transform: scale(1.03);
+    filter: brightness(1.08);
+}
+
+button:active {
+    transform: scale(0.98);
+}
+  
+  </style>
+</head>
+<body>
+  <div class="container">
+    <aside>
+      <div class="logo"><span class="mark">A+</span> Auto+Assis</div>
+      <nav>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="estoque.html">Estoque</a>
+        <a href="movimentacao.html">Movimentações</a>
+        <a href="servicos.html">Serviços</a>
+        <a href="relatorio.html" class="active">Relatórios</a>
+        <a href="consultas.html">Consultas Rápidas</a>
+      </nav>
+      
+      <button onclick="window.location.href='login.html'" style="background:rgba(255,77,77,0.2); color:#ff4d4d; border:none; padding:10px; border-radius:10px; cursor:pointer;">Sair</button>
+    </aside>
+
+    <main>
+      <h1>Relatórios e Estatísticas</h1>
+      <p>Dados reais extraídos do banco de dados</p>
+
+      <div class="summary">
+        <div class="card">
+          <h3>Faturamento (OS)</h3>
+          <div class="value green" id="faturamentoTotal">R$ 0,00</div>
+          <div class="sub">Total de serviços concluídos</div>
+        </div>
+        <div class="card">
+          <h3>Movimentações do Dia</h3>
+          <div class="value" id="totalMov">0</div>
+          <div class="sub">Entradas e saídas hoje</div>
+        </div>
+        <div class="card">
+          <h3>Peças em Estoque</h3>
+          <div class="value" id="totalPecas">0</div>
+          <div class="sub">Unidades totais</div>
+        </div>
+      </div>
+
+      <div class="filter">
+        <h3>Exportar Histórico de Movimentações (CSV)</h3>
+        <p style="font-size: 0.8em; color: #888; margin-bottom: 10px;">Selecione o período para baixar o arquivo.</p>
+        <input type="date" id="dataInicio">
+        <input type="date" id="dataFim">
+        <button id="downloadBtn">📄 Baixar Relatório</button>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // Configura datas padrão (Início do mês até hoje)
+    const hoje = new Date().toISOString().split('T')[0];
+    document.getElementById('dataFim').value = hoje;
+
+    async function carregarRelatorios() {
+        try {
+            // 1. Buscar Solicitações para Faturamento
+            const resSoli = await fetch('http://localhost:3000/api/solicitacoes');
+            const solicitacoes = await resSoli.json();
+            
+            // MUDANÇA APENAS AQUI: Lógica de soma blindada
+            const concluido = solicitacoes.filter(s => s.status === 'Concluído');
+            const total = concluido.reduce((acc, s) => {
+                const valorNum = parseFloat(s.custoSugerido);
+                return acc + (isNaN(valorNum) ? 0 : valorNum);
+            }, 0);
+            
+            document.getElementById('faturamentoTotal').textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
+
+            // 2. Buscar Movimentações do Dia
+            const resMov = await fetch('http://localhost:3000/api/movimentacoes');
+            const movimentacoes = await resMov.json();
+            
+            const movHoje = movimentacoes.filter(m => m.data.startsWith(hoje));
+            document.getElementById('totalMov').textContent = movHoje.length;
+
+            // 3. Buscar Estoque Total
+            const resPecas = await fetch('http://localhost:3000/api/pecas');
+            const pecas = await resPecas.json();
+            const unidades = pecas.reduce((acc, p) => acc + parseInt(p.quantidade), 0);
+            document.getElementById('totalPecas').textContent = unidades;
+
+        } catch (erro) {
+            console.error("Erro ao carregar relatórios:", erro);
+        }
+    }
+
+    // Função de Download CSV
+    document.getElementById("downloadBtn").addEventListener("click", async () => {
+        const dInicio = document.getElementById('dataInicio').value;
+        const dFim = document.getElementById('dataFim').value;
+
+        if (!dInicio || !dFim) return alert("Selecione as datas.");
+
+        try {
+            const res = await fetch('http://localhost:3000/api/movimentacoes');
+            const movimentacoes = await res.json();
+
+            const filtradas = movimentacoes.filter(m => {
+                const dataMov = m.data.split('T')[0];
+                return dataMov >= dInicio && dataMov <= dFim;
+            });
+
+            if (filtradas.length === 0) return alert("Nenhuma movimentação neste período.");
+
+           let csv = "ID da Movimentação;Tipo;Nome da Peça;Quantidade;Data;Observações\n";
+filtradas.forEach(m => {
+    csv += `${m.id};${m.tipo.toUpperCase()};${m.nome_peca};${m.quantidade};${m.data};${m.obs || ''}\n`;
+});
+
+            const blob = new Blob(["\ufeff", csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `Relatorio_AutoAssis_${dInicio}_a_${dFim}.csv`;
+            a.click();
+        } catch (e) { alert("Erro ao gerar CSV"); }
+    });
+
+    carregarRelatorios();
+  </script>
+</body>
+</html>

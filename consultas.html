@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <script src="auth.js"></script>
+  <title>Consultas Rápidas — Auto+Assis</title>
+  <style>
+    :root{
+      --bg:#0a0a0a;
+      --panel:#0f0f0f;
+      --accent:#ff6a00;
+      --white:#ffffff;
+      --muted:#cccccc;
+      --success:#22c55e;
+      --danger:#ff4d4d;
+      --info:#1e88e5;
+      --radius:12px;
+      --shadow:0 8px 30px rgba(0,0,0,0.6);
+      font-family:Inter,system-ui,sans-serif;
+    }
+
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:var(--bg);color:var(--white)}
+
+    .container{display:flex;min-height:100vh}
+    aside{
+      width:260px;background:var(--panel);padding:24px;display:flex;
+      flex-direction:column;gap:18px;border-right:1px solid #1a1a1a;
+    }
+    aside .logo{display:flex;align-items:center;gap:12px;font-weight:700}
+    aside .logo .mark{
+      width:40px;height:40px;border-radius:10px;
+      background:linear-gradient(135deg,var(--accent),#ffa257);
+      display:flex;align-items:center;justify-content:center;
+      color:var(--bg);font-weight:800;
+    }
+    aside nav{flex:1;display:flex;flex-direction:column;gap:12px}
+    aside nav a{
+      display:block;padding:10px 14px;border-radius:10px;
+      color:var(--white);text-decoration:none;
+    }
+    aside nav a.active,aside nav a:hover{
+      background:rgba(255,106,0,0.2);color:var(--accent);
+    }
+    .user{
+      margin-top:auto;background:#1a1a1a;padding:15px;
+      border-radius:10px;text-align:center;
+    }
+    .logout{
+      margin-top:10px;padding:10px;border:none;border-radius:10px;
+      background:rgba(255,77,77,0.2);color:var(--danger);cursor:pointer;
+    }
+
+    main{flex:1;padding:30px;overflow-y:auto}
+    .header{margin-bottom:26px}
+    .header h1{margin-bottom:6px}
+    .header p{color:var(--muted)}
+
+    .question-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+      gap:16px;
+      margin-bottom:24px;
+    }
+    .question-btn{
+      text-align:left;background:var(--panel);color:var(--white);
+      border:1px solid #222;border-left:4px solid var(--accent);
+      padding:18px;border-radius:var(--radius);cursor:pointer;
+      transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease;
+    }
+    .question-btn:hover{
+      transform:translateY(-3px);border-color:rgba(255,106,0,.5);
+      box-shadow:0 8px 24px rgba(255,106,0,.12);
+    }
+    .question-btn strong{display:block;margin-bottom:8px;font-size:15px}
+    .question-btn small{color:var(--muted);line-height:1.4}
+
+    .answer-box{
+      background:var(--panel);border:1px solid #222;
+      border-radius:var(--radius);padding:22px;min-height:180px;
+      box-shadow:var(--shadow);
+    }
+    .answer-box h2{font-size:18px;margin-bottom:12px;color:var(--accent)}
+    .answer-content{color:var(--muted);line-height:1.7}
+    .answer-content ul{padding-left:20px;margin-top:10px}
+    .answer-content li{margin-bottom:7px}
+    .loading{color:var(--info)}
+    .error{color:var(--danger)}
+    .success{color:var(--success)}
+
+    @media(max-width:850px){
+      .container{display:block}
+      aside{width:100%;min-height:auto}
+      aside nav{display:grid;grid-template-columns:repeat(2,1fr)}
+      main{padding:20px}
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <aside>
+      <div class="logo"><span class="mark">A+</span> Auto+Assis</div>
+      <nav>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="estoque.html">Estoque</a>
+        <a href="movimentacao.html">Movimentações</a>
+        <a href="servicos.html">Serviços</a>
+        <a href="relatorio.html">Relatórios</a>
+        <a href="consultas.html" class="active">Consultas Rápidas</a>
+      </nav>
+      <div class="user">
+        <strong id="nomeGerente">Administrador</strong><br>
+        <small style="color:var(--muted)">Gerente</small>
+      </div>
+      <button class="logout" onclick="fazerLogoff()">Sair</button>
+    </aside>
+
+    <main>
+      <div class="header">
+        <h1>Consultas Rápidas</h1>
+        <p>Clique em uma pergunta para consultar os dados atuais da oficina.</p>
+      </div>
+
+      <section class="question-grid">
+        <button class="question-btn" onclick="consultarEstoqueBaixo()">
+          <strong>⚠️ Quais peças precisam de reposição?</strong>
+          <small>Mostra peças com quantidade igual ou abaixo do mínimo.</small>
+        </button>
+
+        <button class="question-btn" onclick="consultarEstoqueZerado()">
+          <strong>🚫 Quais peças estão zeradas?</strong>
+          <small>Lista peças sem nenhuma unidade disponível.</small>
+        </button>
+
+        <button class="question-btn" onclick="consultarValorEstoque()">
+          <strong>💰 Qual é o valor total do estoque?</strong>
+          <small>Soma quantidade multiplicada pelo preço de cada peça.</small>
+        </button>
+
+        <button class="question-btn" onclick="consultarMovimentacoesHoje()">
+          <strong>↕️ Quantas movimentações ocorreram hoje?</strong>
+          <small>Exibe o total de entradas e saídas registradas hoje.</small>
+        </button>
+
+        <button class="question-btn" onclick="consultarServicosAtivos()">
+          <strong>🔧 Quantos serviços estão ativos?</strong>
+          <small>Conta solicitações que ainda não foram concluídas ou rejeitadas.</small>
+        </button>
+
+        <button class="question-btn" onclick="consultarAguardandoAprovacao()">
+          <strong>⏳ Quais serviços aguardam aprovação?</strong>
+          <small>Lista os orçamentos aguardando resposta do cliente.</small>
+        </button>
+
+        <button class="question-btn" onclick="consultarFaturamento()">
+          <strong>📈 Qual é o faturamento dos serviços concluídos?</strong>
+          <small>Soma os valores registrados nas solicitações concluídas.</small>
+        </button>
+
+        <button class="question-btn" onclick="consultarCategorias()">
+          <strong>📦 Quantas peças existem por categoria?</strong>
+          <small>Agrupa as peças cadastradas por categoria.</small>
+        </button>
+      </section>
+
+      <section class="answer-box">
+        <h2 id="answerTitle">Resultado da consulta</h2>
+        <div class="answer-content" id="answerContent">
+          Selecione uma pergunta acima para visualizar a resposta.
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const API_BASE = 'http://localhost:3000/api';
+
+    const nomeLogado = localStorage.getItem('nomeGerenteLogado') || 'Administrador';
+    document.getElementById('nomeGerente').textContent = nomeLogado;
+
+    function fazerLogoff() {
+       window.apiAuth.logout();
+    }
+
+    function mostrarCarregando(titulo) {
+      document.getElementById('answerTitle').textContent = titulo;
+      document.getElementById('answerContent').innerHTML = '<span class="loading">Consultando dados...</span>';
+    }
+
+    function mostrarErro() {
+      document.getElementById('answerContent').innerHTML = '<span class="error">Não foi possível consultar o servidor. Verifique se o Node.js está em execução.</span>';
+    }
+
+    function formatarMoeda(valor) {
+      return Number(valor || 0).toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+      });
+    }
+
+    async function buscarDados(endpoint) {
+      const resposta = await fetch(`${API_BASE}/${endpoint}`);
+      if (!resposta.ok) throw new Error('Erro na consulta');
+      return resposta.json();
+    }
+
+    async function consultarEstoqueBaixo() {
+      mostrarCarregando('Peças que precisam de reposição');
+      try {
+        const pecas = await buscarDados('pecas');
+        const resultado = pecas.filter(p => Number(p.quantidade) <= Number(p.min));
+
+        if (!resultado.length) {
+          document.getElementById('answerContent').innerHTML = '<span class="success">Nenhuma peça está abaixo do estoque mínimo.</span>';
+          return;
+        }
+
+        document.getElementById('answerContent').innerHTML = `
+          <strong>${resultado.length} peça(s) precisam de reposição:</strong>
+          <ul>${resultado.map(p => `<li>${p.nome}: ${p.quantidade} unidade(s), mínimo ${p.min}</li>`).join('')}</ul>
+        `;
+      } catch (erro) { mostrarErro(); }
+    }
+
+    async function consultarEstoqueZerado() {
+      mostrarCarregando('Peças zeradas');
+      try {
+        const pecas = await buscarDados('pecas');
+        const resultado = pecas.filter(p => Number(p.quantidade) === 0);
+
+        if (!resultado.length) {
+          document.getElementById('answerContent').innerHTML = '<span class="success">Nenhuma peça está zerada.</span>';
+          return;
+        }
+
+        document.getElementById('answerContent').innerHTML = `
+          <strong>${resultado.length} peça(s) sem estoque:</strong>
+          <ul>${resultado.map(p => `<li>${p.nome}${p.localizacao ? ` — ${p.localizacao}` : ''}</li>`).join('')}</ul>
+        `;
+      } catch (erro) { mostrarErro(); }
+    }
+
+    async function consultarValorEstoque() {
+      mostrarCarregando('Valor total do estoque');
+      try {
+        const pecas = await buscarDados('pecas');
+        const total = pecas.reduce((soma, p) => soma + (Number(p.quantidade) || 0) * (Number(p.preco) || 0), 0);
+        document.getElementById('answerContent').innerHTML = `O valor atual estimado do estoque é <strong class="success">${formatarMoeda(total)}</strong>.`;
+      } catch (erro) { mostrarErro(); }
+    }
+
+    async function consultarMovimentacoesHoje() {
+      mostrarCarregando('Movimentações registradas hoje');
+      try {
+        const movimentacoes = await buscarDados('movimentacoes');
+        const hoje = new Date().toISOString().split('T')[0];
+        const deHoje = movimentacoes.filter(m => m.data && m.data.startsWith(hoje));
+        const entradas = deHoje.filter(m => String(m.tipo || '').toLowerCase().includes('entrada')).length;
+        const saidas = deHoje.length - entradas;
+
+        document.getElementById('answerContent').innerHTML = `
+          Foram registradas <strong>${deHoje.length}</strong> movimentação(ões) hoje:<br>
+          <span class="success">${entradas} entrada(s)</span> e <span class="error">${saidas} saída(s)</span>.
+        `;
+      } catch (erro) { mostrarErro(); }
+    }
+
+    async function consultarServicosAtivos() {
+      mostrarCarregando('Serviços ativos');
+      try {
+        const solicitacoes = await buscarDados('solicitacoes');
+        const ativos = solicitacoes.filter(s => s.status !== 'Concluído' && s.status !== 'Rejeitado');
+        document.getElementById('answerContent').innerHTML = `Existem <strong class="success">${ativos.length}</strong> serviço(s) ativo(s) no momento.`;
+      } catch (erro) { mostrarErro(); }
+    }
+
+    async function consultarAguardandoAprovacao() {
+      mostrarCarregando('Serviços aguardando aprovação');
+      try {
+        const solicitacoes = await buscarDados('solicitacoes');
+        const aguardando = solicitacoes.filter(s => s.status === 'Aguardando Aprovação');
+
+        if (!aguardando.length) {
+          document.getElementById('answerContent').innerHTML = '<span class="success">Nenhum serviço está aguardando aprovação.</span>';
+          return;
+        }
+
+        document.getElementById('answerContent').innerHTML = `
+          <strong>${aguardando.length} serviço(s) aguardando aprovação:</strong>
+          <ul>${aguardando.map(s => `<li>${s.nomeCliente} — ${s.veiculo} — ${formatarMoeda(s.custoSugerido)}</li>`).join('')}</ul>
+        `;
+      } catch (erro) { mostrarErro(); }
+    }
+
+    async function consultarFaturamento() {
+      mostrarCarregando('Faturamento dos serviços concluídos');
+      try {
+        const solicitacoes = await buscarDados('solicitacoes');
+        const concluidos = solicitacoes.filter(s => s.status === 'Concluído');
+        const total = concluidos.reduce((soma, s) => soma + (Number(s.custoSugerido) || 0), 0);
+
+        document.getElementById('answerContent').innerHTML = `
+          O faturamento registrado em <strong>${concluidos.length}</strong> serviço(s) concluído(s) é
+          <strong class="success">${formatarMoeda(total)}</strong>.
+        `;
+      } catch (erro) { mostrarErro(); }
+    }
+
+    async function consultarCategorias() {
+      mostrarCarregando('Peças por categoria');
+      try {
+        const pecas = await buscarDados('pecas');
+        const categorias = {};
+
+        pecas.forEach(p => {
+          const categoria = p.categoria || 'Sem categoria';
+          categorias[categoria] = (categorias[categoria] || 0) + 1;
+        });
+
+        const itens = Object.entries(categorias).sort((a, b) => a[0].localeCompare(b[0]));
+
+        if (!itens.length) {
+          document.getElementById('answerContent').innerHTML = 'Nenhuma peça cadastrada.';
+          return;
+        }
+
+        document.getElementById('answerContent').innerHTML = `
+          <ul>${itens.map(([categoria, quantidade]) => `<li><strong>${categoria}:</strong> ${quantidade} tipo(s) de peça</li>`).join('')}</ul>
+        `;
+      } catch (erro) { mostrarErro(); }
+    }
+  </script>
+</body>
+</html>
