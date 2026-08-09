@@ -1,166 +1,566 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-    <meta charset="utf-8">
-    <title>Gerenciar Solicitação — Auto+Assis</title>
-    <style>
-        :root { --bg:#0a0a0a; --panel:#0f0f0f; --accent:#ff6a00; --white:#ffffff; --radius:12px; font-family: Inter, sans-serif; }
-        body { background: var(--bg); color: var(--white); padding: 40px; display: flex; justify-content: center; }
-        .card { background: var(--panel); padding: 30px; border-radius: var(--radius); width: 100%; max-width: 600px; border: 1px solid #333; }
-        .btn-group { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
-        button { padding: 12px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; flex: 1; min-width: 150px; }
-        
-        .btn-analise { background: #1e88e5; color: white; }
-        .btn-orcamento { background: #ff6a00; color: white; }
-        .btn-iniciar { background: #f59e0b; color: black; } 
-        .btn-concluir { background: #22c55e; color: white; } 
-        .btn-rejeitar { background: #ff4d4d; color: white; }
-        
-        input { width: 100%; padding: 10px; margin-top: 10px; border-radius: 8px; border: 1px solid #444; background: #000; color: #fff; }
-        .status-tag { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 0.8em; background: #333; margin-bottom: 10px; font-weight: bold;}
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#080b10">
+  <title>Gerenciar solicitação — Auto+Assis</title>
   <script src="auth.js"></script>
+  <link rel="stylesheet" href="product.css">
+  <script src="ui.js" defer></script>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { display: flex; margin: 0; min-height: 100vh; }
+    aside { display: flex; flex-direction: column; gap: 18px; }
+    aside nav { flex: 1; }
+
+    .request-breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 21px;
+      color: #69778b;
+      font-size: 10px;
+      font-weight: 680;
+    }
+    .request-breadcrumb a { color: #9ba7b8; text-decoration: none; }
+    .request-breadcrumb a:hover { color: var(--accent-2); }
+    .request-breadcrumb i { width: 4px; height: 4px; border-radius: 50%; background: #465266; }
+
+    .request-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(300px, .68fr);
+      align-items: start;
+      gap: 16px;
+    }
+    .request-primary, .request-side { display: grid; gap: 16px; min-width: 0; }
+    .request-surface {
+      min-width: 0;
+      padding: 23px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: linear-gradient(145deg, rgba(18, 25, 35, .97), rgba(11, 16, 24, .98));
+      box-shadow: 0 17px 44px rgba(0, 0, 0, .18);
+    }
+
+    .request-identity { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+    .customer-block { display: flex; align-items: center; gap: 13px; min-width: 0; }
+    .customer-avatar {
+      display: grid;
+      place-items: center;
+      width: 48px;
+      height: 48px;
+      flex: 0 0 48px;
+      border: 1px solid rgba(255, 122, 26, .16);
+      border-radius: 14px;
+      background: linear-gradient(145deg, rgba(255, 122, 26, .14), rgba(255, 122, 26, .055));
+      color: var(--accent-2);
+      font-size: 14px;
+      font-weight: 900;
+    }
+    .customer-info { min-width: 0; }
+    .customer-info span {
+      display: block;
+      margin-bottom: 5px;
+      color: #68768a;
+      font-size: 8px;
+      font-weight: 820;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+    }
+    .customer-info h2 {
+      overflow: hidden;
+      margin: 0;
+      color: #f1f4f8;
+      font-size: 20px;
+      letter-spacing: -.035em;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .customer-info p { margin: 5px 0 0; color: #8592a5; font-size: 11px; }
+    .request-badges { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 7px; }
+    .request-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 29px;
+      padding: 0 10px;
+      border: 1px solid rgba(255, 255, 255, .09);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .04);
+      color: #b1bdcc;
+      font-size: 9px;
+      font-weight: 790;
+    }
+    .request-badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #8490a2; }
+    .status-pending { color: #f2c873; background: rgba(248, 193, 92, .07); }
+    .status-pending::before { background: var(--warning); }
+    .status-analysis { color: #8fc2ff; background: rgba(97, 169, 255, .07); }
+    .status-analysis::before { background: var(--info); }
+    .status-approved, .status-done { color: #75e0c4; background: rgba(49, 208, 170, .07); }
+    .status-approved::before, .status-done::before { background: var(--success); }
+    .status-running { color: #f2c873; background: rgba(248, 193, 92, .07); }
+    .status-running::before { background: var(--warning); }
+    .status-rejected { color: #ff919e; background: rgba(255, 101, 119, .07); }
+    .status-rejected::before { background: var(--danger); }
+    .urgency-high { color: #ff919e; background: rgba(255, 101, 119, .07); }
+    .urgency-high::before { background: var(--danger); }
+    .urgency-medium { color: #f2c873; background: rgba(248, 193, 92, .07); }
+    .urgency-medium::before { background: var(--warning); }
+    .urgency-low { color: #8fc2ff; background: rgba(97, 169, 255, .07); }
+    .urgency-low::before { background: var(--info); }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1px;
+      margin-top: 22px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--line);
+    }
+    .detail-item { min-width: 0; padding: 15px; background: rgba(11, 16, 24, .96); }
+    .detail-item span { display: block; color: #68768a; font-size: 8px; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
+    .detail-item strong { display: block; overflow: hidden; margin-top: 7px; color: #dce2eb; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+
+    .section-label {
+      display: block;
+      margin-bottom: 9px;
+      color: var(--accent-2);
+      font-size: 8px;
+      font-weight: 850;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+    .request-surface h3 { margin: 0; color: #edf1f6; font-size: 15px; letter-spacing: -.025em; }
+    .problem-copy {
+      margin: 14px 0 0;
+      padding: 16px 17px;
+      border-left: 2px solid rgba(255, 122, 26, .58);
+      border-radius: 0 12px 12px 0;
+      background: rgba(255, 122, 26, .035);
+      color: #aab5c4;
+      font-size: 12px;
+      line-height: 1.65;
+      white-space: pre-wrap;
+    }
+
+    .workflow-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+    .workflow-head p { margin: 5px 0 0; color: #6e7b8f; font-size: 10px; }
+    .workflow-step { color: #7f8da1; font-size: 9px; font-weight: 750; }
+    .btn-group { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+    .btn-group button {
+      width: 100%;
+      min-width: 0;
+      min-height: 45px;
+      padding: 0 13px;
+      border-radius: 11px !important;
+      font-size: 10px;
+    }
+    .btn-analise { border: 1px solid rgba(97, 169, 255, .18); background: rgba(97, 169, 255, .09); color: #9bc8ff; }
+    .btn-orcamento { border: 0; background: linear-gradient(100deg, #ff6912, #ff984c); color: #17100c; }
+    .btn-iniciar { grid-column: 1 / -1; border: 1px solid rgba(248, 193, 92, .2); background: rgba(248, 193, 92, .1); color: #f7cd80; }
+    .btn-concluir { grid-column: 1 / -1; border: 1px solid rgba(49, 208, 170, .18); background: rgba(49, 208, 170, .09); color: #7de2c8; }
+    .btn-rejeitar { border: 1px solid rgba(255, 101, 119, .17); background: rgba(255, 101, 119, .07); color: #ff939f; }
+    .btn-group button:disabled { cursor: wait; filter: grayscale(.4); opacity: .55; }
+    .workflow-finished {
+      grid-column: 1 / -1;
+      margin: 0;
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, .025);
+      color: #8693a6;
+      font-size: 10px;
+      text-align: center;
+    }
+
+    .budget-panel {
+      margin-bottom: 14px;
+      padding: 15px;
+      border: 1px solid rgba(255, 122, 26, .16);
+      border-radius: 13px;
+      background: rgba(255, 122, 26, .04);
+    }
+    .budget-panel[hidden] { display: none; }
+    .budget-panel label { display: block; }
+    .budget-panel input { width: 100%; margin-top: 8px; }
+    .budget-help { display: block; margin-top: 8px; color: #708095; font-size: 9px; }
+
+    .request-side .request-surface { padding: 20px; }
+    .context-list { display: grid; gap: 0; margin-top: 13px; }
+    .context-row { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 13px 0; border-bottom: 1px solid rgba(255,255,255,.055); }
+    .context-row:last-child { border-bottom: 0; }
+    .context-row span { color: #718095; font-size: 9px; }
+    .context-row strong { overflow: hidden; color: #cfd7e2; font-size: 10px; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
+    .support-note { margin: 13px 0 0; color: #718095; font-size: 10px; line-height: 1.55; }
+    .back-action {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      min-height: 42px;
+      margin-top: 2px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, .025);
+      color: #9ca8b8;
+      font-size: 10px;
+      font-weight: 720;
+      text-decoration: none;
+    }
+    .back-action:hover { border-color: rgba(255,122,26,.2); color: var(--accent-2); }
+
+    .request-loading {
+      display: grid;
+      place-items: center;
+      min-height: 300px;
+      color: #78869a;
+      text-align: center;
+    }
+    .request-loading strong { display: block; margin-top: 13px; color: #d7dee8; font-size: 13px; }
+    .request-loading p { margin: 6px 0 0; font-size: 10px; }
+    .loading-ring { width: 34px; height: 34px; border: 3px solid rgba(255,255,255,.08); border-top-color: var(--accent); border-radius: 50%; animation: request-spin .8s linear infinite; }
+    @keyframes request-spin { to { transform: rotate(360deg); } }
+    .request-error { color: #ff96a2 !important; }
+
+    @media (max-width: 1160px) {
+      .request-layout { grid-template-columns: 1fr; }
+      .request-side { grid-template-columns: 1fr 1fr; }
+      .back-action { grid-column: 1 / -1; }
+    }
+    @media (max-width: 720px) {
+      .request-identity { flex-direction: column; }
+      .request-badges { justify-content: flex-start; }
+      .detail-grid { grid-template-columns: 1fr; }
+      .request-side { grid-template-columns: 1fr; }
+      .btn-group { grid-template-columns: 1fr; }
+      .btn-iniciar, .btn-concluir { grid-column: auto; }
+    }
+  </style>
 </head>
 <body>
-    <div class="card" id="detalhesSolicitacao">
-        <div style="display: flex; gap: 10px;">
-            <div id="statusAtual" class="status-tag">Carregando status...</div>
-            <div id="urgenciaAtual" class="status-tag" style="display: none;"></div>
-        </div>
-        
-        <h1 id="clienteNome">Carregando...</h1>
-        <p id="veiculoInfo"></p>
-        <hr style="margin: 20px 0; border: 0; border-top: 1px solid #333;">
-        
-        <p><strong>Problema relatado:</strong></p>
-        <p id="problemaDesc"></p>
-
-        <div id="areaOrcamento" style="margin-top: 20px; display: none;">
-            <label>Valor do Orçamento (R$):</label>
-            <input type="number" id="valorOrcamento" placeholder="0.00">
-        </div>
-
-        <div class="btn-group" id="containerBotoes">
-            </div>
-        
-        <button onclick="window.location.href='servicos.html'" style="background:none; color:#888; margin-top:20px; font-size: 0.9em; width: 100%;">⬅ Voltar para a lista</button>
+  <aside>
+    <div class="logo"><span class="mark">A+</span><span>Auto+Assis</span></div>
+    <div class="workspace-label"><span class="workspace-dot"></span><span><small>AMBIENTE</small>Oficina principal</span></div>
+    <nav>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="estoque.html">Estoque</a>
+      <a href="movimentacao.html">Movimentações</a>
+      <a href="servicos.html" class="active">Serviços</a>
+      <a href="relatorio.html">Relatórios</a>
+      <a href="consultas.html">Consultas rápidas</a>
+      <a href="gerentes.html">Gerentes</a>
+    </nav>
+    <div class="user profile-card">
+      <div class="profile-avatar" id="avatarGerente">G</div>
+      <div><strong id="nomeGerentePerfil">Gerente</strong><small>Administrador</small></div>
     </div>
+    <button type="button" onclick="window.apiAuth.logout()">Sair da conta</button>
+  </aside>
 
-    <script>
-        window.apiAuth.requireAuth('gerente');
+  <main>
+    <div class="request-breadcrumb"><a href="servicos.html">Serviços</a><i></i><span>Detalhes da solicitação</span></div>
+    <section class="page-heading">
+      <div>
+        <span class="page-overline">GESTÃO DE ATENDIMENTO</span>
+        <h1>Conduzir solicitação</h1>
+        <p>Revise o diagnóstico inicial e avance o atendimento com rastreabilidade.</p>
+      </div>
+      <div class="page-actions">
+        <span class="live-indicator"><i></i>Registro sincronizado</span>
+        <button class="button-secondary" type="button" onclick="window.location.href='servicos.html'">Voltar à fila</button>
+      </div>
+    </section>
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const idRaw = urlParams.get('id');
-        const idSolicitacao = idRaw ? idRaw.replace(/\D/g, '') : null;
-        let dadosDoServico = {};
+    <div class="request-layout" id="detalhesSolicitacao" aria-live="polite" aria-busy="true">
+      <div class="request-primary">
+        <section class="request-surface">
+          <div class="request-identity">
+            <div class="customer-block">
+              <span class="customer-avatar" id="clienteAvatar" aria-hidden="true">—</span>
+              <div class="customer-info">
+                <span>Cliente responsável</span>
+                <h2 id="clienteNome">Carregando…</h2>
+                <p id="veiculoInfo">Consultando dados do veículo</p>
+              </div>
+            </div>
+            <div class="request-badges">
+              <div id="statusAtual" class="request-badge">Carregando status</div>
+              <div id="urgenciaAtual" class="request-badge" hidden></div>
+            </div>
+          </div>
+          <div class="detail-grid" aria-label="Dados principais da solicitação">
+            <div class="detail-item"><span>Protocolo</span><strong id="protocoloAtual">—</strong></div>
+            <div class="detail-item"><span>Ordem de serviço</span><strong id="numeroOsAtual">Não emitida</strong></div>
+            <div class="detail-item"><span>Orçamento atual</span><strong id="orcamentoAtual">Não informado</strong></div>
+          </div>
+        </section>
 
-        async function carregarDados() {
-            if (!idSolicitacao) {
-                alert("ID da solicitação não encontrado.");
-                return window.location.href = 'servicos.html';
-            }
+        <section class="request-surface">
+          <span class="section-label">RELATO INICIAL</span>
+          <h3>Problema informado pelo cliente</h3>
+          <p class="problem-copy" id="problemaDesc">Carregando descrição…</p>
+        </section>
+      </div>
 
-            try {
-                const res = await window.apiAuth.fetch('/api/solicitacoes');
-                const dados = await res.json().catch(() => ({}));
-                if (!res.ok) {
-                    throw new Error(dados.erro || 'Erro ao carregar a solicitação.');
-                }
-                const soli = dados.find(s => s.id == idSolicitacao);
+      <div class="request-side" role="complementary" aria-label="Ações da solicitação">
+        <section class="request-surface">
+          <div class="workflow-head">
+            <div><span class="section-label">PRÓXIMA AÇÃO</span><h3>Fluxo do atendimento</h3><p>Selecione o avanço adequado para esta etapa.</p></div>
+            <span class="workflow-step" id="etapaAtual">—</span>
+          </div>
 
-                if (soli) {
-                    dadosDoServico = soli; 
+          <div class="budget-panel" id="areaOrcamento" hidden>
+            <label for="valorOrcamento">Valor do orçamento (R$)</label>
+            <input type="number" id="valorOrcamento" min="0.01" step="0.01" inputmode="decimal" placeholder="0,00">
+            <small class="budget-help">O cliente receberá este valor para aprovação.</small>
+          </div>
 
-                    document.getElementById('clienteNome').textContent = soli.nomeCliente;
-                    document.getElementById('veiculoInfo').textContent = `${soli.veiculo} - ${soli.placa}`;
-                    document.getElementById('problemaDesc').textContent = soli.problema;
-                    document.getElementById('statusAtual').textContent = `Status Atual: ${soli.status}`;
-                    
-                    // MOSTRA A URGÊNCIA EM DESTAQUE NO TOPO
-                    if (soli.urgencia) {
-                        const urgEl = document.getElementById('urgenciaAtual');
-                        urgEl.style.display = 'inline-block';
-                        urgEl.textContent = `🚨 Urgência: ${soli.urgencia}`;
-                        
-                        if (soli.urgencia === 'Alta' || soli.urgencia === 'Urgente') urgEl.style.background = 'var(--danger)';
-                        else if (soli.urgencia === 'Média') urgEl.style.background = '#f59e0b';
-                        else if (soli.urgencia === 'Baixa') urgEl.style.background = '#1e88e5';
-                    }
-                    
-                    renderizarBotoes(soli);
-                }
-            } catch (err) { console.error("Erro ao carregar dados:", err); }
+          <div class="btn-group" id="containerBotoes"></div>
+        </section>
+
+        <section class="request-surface">
+          <span class="section-label">CONTEXTO</span>
+          <h3>Informações operacionais</h3>
+          <div class="context-list">
+            <div class="context-row"><span>Responsável</span><strong id="responsavelAtual">Equipe da oficina</strong></div>
+            <div class="context-row"><span>Última sincronização</span><strong id="sincronizacaoAtual">Agora</strong></div>
+            <div class="context-row"><span>Canal</span><strong>Portal Auto+Assis</strong></div>
+          </div>
+          <p class="support-note">As alterações ficam disponíveis ao cliente assim que o status é confirmado.</p>
+        </section>
+
+        <a class="back-action" href="servicos.html">← Voltar para a lista de serviços</a>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    window.apiAuth.requireAuth(['gerente', 'mecanico']);
+
+    const usuarioLogado = window.apiAuth.getUsuario() || {};
+    const podeGerenciarOrcamento = window.apiAuth.can('services.financial');
+    const nomeGerente = usuarioLogado.nome || localStorage.getItem('nomeGerenteLogado') || 'Gerente';
+    document.getElementById('nomeGerentePerfil').textContent = nomeGerente;
+    document.getElementById('avatarGerente').textContent = nomeGerente.trim().charAt(0).toUpperCase() || 'G';
+    document.getElementById('responsavelAtual').textContent = nomeGerente;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const idRaw = urlParams.get('id');
+    const idSolicitacao = idRaw ? idRaw.replace(/\D/g, '') : null;
+    let dadosDoServico = {};
+
+    const classesStatus = ['status-pending', 'status-analysis', 'status-approved', 'status-running', 'status-done', 'status-rejected'];
+    const classesUrgencia = ['urgency-high', 'urgency-medium', 'urgency-low'];
+
+    function classeDoStatus(status) {
+      if (status === 'Em Análise' || status === 'Aguardando Aprovação') return 'status-analysis';
+      if (status === 'Aprovado') return 'status-approved';
+      if (status === 'Em Andamento') return 'status-running';
+      if (status === 'Concluído') return 'status-done';
+      if (status === 'Rejeitado') return 'status-rejected';
+      return 'status-pending';
+    }
+
+    function etapaDoStatus(status) {
+      const etapas = {
+        Pendente: 'Etapa 1 de 5',
+        'Em Análise': 'Etapa 2 de 5',
+        'Aguardando Aprovação': 'Etapa 3 de 5',
+        Aprovado: 'Etapa 4 de 5',
+        'Em Andamento': 'Etapa 4 de 5',
+        Concluído: 'Etapa 5 de 5',
+        Rejeitado: 'Encerrado'
+      };
+      return etapas[status] || 'Em acompanhamento';
+    }
+
+    function formatarMoeda(valor) {
+      const numero = Number(valor);
+      return Number.isFinite(numero) && numero > 0
+        ? numero.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+        : 'Não informado';
+    }
+
+    function mostrarErro(mensagem) {
+      const detalhes = document.getElementById('detalhesSolicitacao');
+      detalhes.setAttribute('aria-busy', 'false');
+      detalhes.innerHTML = `<section class="request-surface request-loading"><div><strong class="request-error">Não foi possível abrir a solicitação</strong><p>${String(mensagem).replace(/[<>&]/g, '')}</p><a class="back-action" href="servicos.html">Voltar à fila de serviços</a></div></section>`;
+    }
+
+    function preencherDados(solicitacao) {
+      document.getElementById('clienteNome').textContent = solicitacao.nomeCliente || 'Cliente não informado';
+      document.getElementById('clienteAvatar').textContent = (solicitacao.nomeCliente || 'C').trim().charAt(0).toUpperCase();
+      document.getElementById('veiculoInfo').textContent = `${solicitacao.veiculo || 'Veículo não informado'} · ${solicitacao.placa || 'Sem placa'}`;
+      document.getElementById('problemaDesc').textContent = solicitacao.problema || 'Nenhuma descrição foi informada.';
+      document.getElementById('protocoloAtual').textContent = `SOL-${solicitacao.id}`;
+      document.getElementById('numeroOsAtual').textContent = solicitacao.osNumero || 'Não emitida';
+      document.getElementById('orcamentoAtual').textContent = formatarMoeda(solicitacao.custoSugerido);
+      document.getElementById('etapaAtual').textContent = etapaDoStatus(solicitacao.status);
+      document.getElementById('sincronizacaoAtual').textContent = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+      const statusEl = document.getElementById('statusAtual');
+      statusEl.classList.remove(...classesStatus);
+      statusEl.classList.add(classeDoStatus(solicitacao.status));
+      statusEl.textContent = solicitacao.status || 'Sem status';
+
+      const urgenciaEl = document.getElementById('urgenciaAtual');
+      if (solicitacao.urgencia) {
+        urgenciaEl.hidden = false;
+        urgenciaEl.classList.remove(...classesUrgencia);
+        const classe = solicitacao.urgencia === 'Alta' || solicitacao.urgencia === 'Urgente'
+          ? 'urgency-high'
+          : solicitacao.urgencia === 'Baixa' ? 'urgency-low' : 'urgency-medium';
+        urgenciaEl.classList.add(classe);
+        urgenciaEl.textContent = `Urgência ${solicitacao.urgencia}`;
+      } else {
+        urgenciaEl.hidden = true;
+      }
+    }
+
+    async function carregarDados() {
+      if (!idSolicitacao) {
+        mostrarErro('O endereço não contém um identificador válido.');
+        return;
+      }
+
+      try {
+        const resposta = await window.apiAuth.fetch('/api/solicitacoes');
+        const dados = await resposta.json().catch(() => ([]));
+        if (!resposta.ok) throw new Error(dados.erro || 'Erro ao carregar a solicitação.');
+        if (!Array.isArray(dados)) throw new Error('O servidor retornou uma resposta inválida.');
+
+        const solicitacao = dados.find((item) => String(item.id) === String(idSolicitacao));
+        if (!solicitacao) throw new Error('A solicitação não foi encontrada ou não está mais disponível.');
+
+        dadosDoServico = solicitacao;
+        preencherDados(solicitacao);
+        renderizarBotoes(solicitacao);
+        document.getElementById('detalhesSolicitacao').setAttribute('aria-busy', 'false');
+      } catch (erro) {
+        console.error('Erro ao carregar dados:', erro);
+        mostrarErro(erro.message);
+      }
+    }
+
+    function renderizarBotoes(solicitacao) {
+      const container = document.getElementById('containerBotoes');
+      document.getElementById('areaOrcamento').hidden = true;
+
+      if (solicitacao.status === 'Pendente') {
+        container.replaceChildren();
+        const analisar = document.createElement('button');
+        analisar.type = 'button';
+        analisar.className = 'btn-analise';
+        analisar.textContent = 'Colocar em análise';
+        analisar.addEventListener('click', () => atualizarStatus('Em Análise'));
+        container.appendChild(analisar);
+
+        if (podeGerenciarOrcamento) {
+          const rejeitar = document.createElement('button');
+          rejeitar.type = 'button';
+          rejeitar.className = 'btn-rejeitar';
+          rejeitar.textContent = 'Rejeitar solicitação';
+          rejeitar.addEventListener('click', () => atualizarStatus('Rejeitado'));
+          container.appendChild(rejeitar);
         }
+      } else if (solicitacao.status === 'Em Análise') {
+        container.replaceChildren();
+        if (podeGerenciarOrcamento) {
+          const orcamento = document.createElement('button');
+          orcamento.type = 'button';
+          orcamento.className = 'btn-orcamento';
+          orcamento.id = 'btnOrcamentoBase';
+          orcamento.textContent = 'Enviar orçamento';
+          orcamento.addEventListener('click', mostrarOrcamento);
 
-        function renderizarBotoes(soli) {
-            const container = document.getElementById('containerBotoes');
-            container.innerHTML = ''; 
-
-            if (soli.status === 'Pendente' || soli.status === 'Em Análise') {
-                container.innerHTML = `
-                    <button class="btn-analise" onclick="atualizarStatus('Em Análise')">Colocar em Análise</button>
-                    <button class="btn-orcamento" id="btnOrcamentoBase" onclick="mostrarOrcamento()">Enviar Orçamento</button>
-                    <button class="btn-rejeitar" onclick="atualizarStatus('Rejeitado')">Rejeitar</button>
-                `;
-            } 
-            else if (soli.status === 'Aprovado') {
-                container.innerHTML = `
-                    <button class="btn-iniciar" onclick="atualizarStatus('Em Andamento')">▶️ Iniciar Serviço</button>
-                `;
-            } 
-            else if (soli.status === 'Em Andamento') {
-                container.innerHTML = `
-                    <button class="btn-concluir" onclick="atualizarStatus('Concluído')">✅ Finalizar Serviço</button>
-                `;
-            }
-            else {
-                container.innerHTML = `<p style="color:#888; width:100%; text-align:center;">Serviço Finalizado.</p>`;
-            }
+          const rejeitar = document.createElement('button');
+          rejeitar.type = 'button';
+          rejeitar.className = 'btn-rejeitar';
+          rejeitar.textContent = 'Rejeitar solicitação';
+          rejeitar.addEventListener('click', () => atualizarStatus('Rejeitado'));
+          container.append(orcamento, rejeitar);
+        } else {
+          container.innerHTML = '<p class="workflow-finished">A análise está pronta para o gerente emitir o orçamento.</p>';
         }
+      } else if (solicitacao.status === 'Aprovado') {
+        container.innerHTML = '<button type="button" class="btn-iniciar" onclick="atualizarStatus(\'Em Andamento\')">Iniciar serviço</button>';
+      } else if (solicitacao.status === 'Em Andamento') {
+        container.innerHTML = '<button type="button" class="btn-concluir" onclick="atualizarStatus(\'Concluído\')">Finalizar serviço</button>';
+      } else {
+        container.innerHTML = '<p class="workflow-finished">Este atendimento não possui ações pendentes nesta etapa.</p>';
+      }
+    }
 
-        function mostrarOrcamento() {
-            document.getElementById('areaOrcamento').style.display = 'block';
-            const btn = document.getElementById('btnOrcamentoBase');
-            btn.textContent = "Confirmar Valor";
-            btn.onclick = finalizarOrcamento;
-        }
+    function mostrarOrcamento() {
+      if (!podeGerenciarOrcamento) {
+        window.productUI?.notify?.('Somente gerentes podem definir orçamentos.', 'warning');
+        return;
+      }
+      const area = document.getElementById('areaOrcamento');
+      area.hidden = false;
+      const campo = document.getElementById('valorOrcamento');
+      if (dadosDoServico.custoSugerido) campo.value = dadosDoServico.custoSugerido;
+      const botao = document.getElementById('btnOrcamentoBase');
+      botao.textContent = 'Confirmar orçamento';
+      botao.onclick = finalizarOrcamento;
+      campo.focus();
+    }
 
-        async function atualizarStatus(novoStatus, custo = null) {
-            try {
-                const custoFinal = custo !== null ? custo : dadosDoServico.custoSugerido;
-                const osFinal = dadosDoServico.osNumero;
+    function definirProcessando(processando) {
+      const container = document.getElementById('containerBotoes');
+      container.querySelectorAll('button').forEach((botao) => {
+        botao.disabled = processando;
+      });
+      container.setAttribute('aria-busy', String(processando));
+    }
 
-                const res = await window.apiAuth.fetch(`/api/solicitacoes/${idSolicitacao}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        status: novoStatus, 
-                        custoSugerido: custoFinal,
-                        osNumero: osFinal
-                    })
-                });
+    function montarAtualizacao(novoStatus, custo = null) {
+      const atualizacao = { status: novoStatus };
+      if (novoStatus === 'Aguardando Aprovação' && podeGerenciarOrcamento && custo !== null) {
+        atualizacao.custoSugerido = custo;
+      }
+      return atualizacao;
+    }
 
-                const resposta = await res.json().catch(() => ({}));
+    async function atualizarStatus(novoStatus, custo = null) {
+      definirProcessando(true);
+      try {
+        const atualizacao = montarAtualizacao(novoStatus, custo);
+        const resposta = await window.apiAuth.fetch(`/api/solicitacoes/${idSolicitacao}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(atualizacao)
+        });
+        const dados = await resposta.json().catch(() => ({}));
+        if (!resposta.ok) throw new Error(dados.erro || 'Erro ao atualizar o status.');
 
-                if (!res.ok) {
-                    throw new Error(resposta.erro || 'Erro ao atualizar o status.');
-                }
+        window.productUI?.notify(`Status alterado para ${novoStatus}.`, 'success');
+        window.setTimeout(() => { window.location.href = '/servicos.html'; }, 450);
+      } catch (erro) {
+        console.error('Erro ao atualizar serviço:', erro);
+        definirProcessando(false);
+        if (window.productUI?.notify) window.productUI.notify(erro.message, 'error');
+        else alert(erro.message);
+      }
+    }
 
-                alert(`Status alterado para: ${novoStatus}`);
-                window.location.href = '/servicos.html';
-            } catch (err) {
-                console.error('Erro ao atualizar serviço:', err);
-                alert(`❌ ${err.message}`);
-            }
-        }
+    async function finalizarOrcamento() {
+      const valor = Number(document.getElementById('valorOrcamento').value);
+      if (!Number.isFinite(valor) || valor <= 0) {
+        if (window.productUI?.notify) window.productUI.notify('Digite um valor de orçamento válido.', 'error');
+        else alert('Digite um valor de orçamento válido.');
+        return;
+      }
+      await atualizarStatus('Aguardando Aprovação', valor);
+    }
 
-        async function finalizarOrcamento() {
-            const valor = document.getElementById('valorOrcamento').value;
-            if(!valor || valor <= 0) return alert("Digite um valor válido.");
-            await atualizarStatus('Aguardando Aprovação', valor);
-        }
-
-        carregarDados();
-    </script>
+    carregarDados();
+  </script>
 </body>
 </html>

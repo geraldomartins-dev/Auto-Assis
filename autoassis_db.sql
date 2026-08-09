@@ -1,180 +1,198 @@
--- phpMyAdmin SQL Dump
--- version 5.2.1
--- https://www.phpmyadmin.net/
---
--- Host: 127.0.0.1
--- Generation Time: Apr 10, 2026 at 02:11 AM
--- Server version: 10.4.32-MariaDB
--- PHP Version: 8.2.12
+-- Auto+Assis - schema seguro para instalação
+-- Compatível com MariaDB 11.4 LTS+ e MySQL 8.4 LTS+
+-- Este arquivo não remove tabelas, não apaga dados e não cria senhas padrão.
 
-SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
-START TRANSACTION;
-SET time_zone = "+00:00";
+CREATE DATABASE IF NOT EXISTS autoassis_novo
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
 
+USE autoassis_novo;
 
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8mb4 */;
+SET NAMES utf8mb4;
 
---
--- Database: `autoassis_db`
---
+CREATE TABLE IF NOT EXISTS usuarios (
+  id INT NOT NULL AUTO_INCREMENT,
+  nome VARCHAR(100) NOT NULL,
+  email VARCHAR(150) NOT NULL,
+  senha VARCHAR(255) NOT NULL,
+  tipo ENUM('cliente', 'gerente', 'mecanico') NOT NULL DEFAULT 'cliente',
+  auth_version INT UNSIGNED NOT NULL DEFAULT 1,
+  reset_token VARCHAR(255) DEFAULT NULL,
+  reset_token_expira DATETIME DEFAULT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_usuarios_email (email)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- --------------------------------------------------------
+-- Migração idempotente para instalações existentes: preserva todos os usuários
+-- e amplia a hierarquia sem recriar a tabela.
+ALTER TABLE usuarios
+  MODIFY COLUMN tipo ENUM('cliente', 'gerente', 'mecanico') NOT NULL DEFAULT 'cliente';
 
---
--- Table structure for table `movimentacoes`
---
+-- MySQL e MariaDB não compartilham a mesma sintaxe de ADD COLUMN IF NOT EXISTS
+-- em todas as versões suportadas. A checagem no catálogo mantém a migração
+-- segura e repetível nas duas famílias de banco.
+SET @autoassis_auth_version_existe := (
+  SELECT COUNT(*)
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'usuarios'
+    AND COLUMN_NAME = 'auth_version'
+);
+SET @autoassis_auth_version_sql := IF(
+  @autoassis_auth_version_existe = 0,
+  'ALTER TABLE usuarios ADD COLUMN auth_version INT UNSIGNED NOT NULL DEFAULT 1 AFTER tipo',
+  'SELECT 1'
+);
+PREPARE autoassis_auth_version_stmt FROM @autoassis_auth_version_sql;
+EXECUTE autoassis_auth_version_stmt;
+DEALLOCATE PREPARE autoassis_auth_version_stmt;
 
-CREATE TABLE `movimentacoes` (
-  `id` int(11) NOT NULL,
-  `tipo` varchar(20) NOT NULL,
-  `pecaId` varchar(20) NOT NULL,
-  `quantidade` int(11) NOT NULL,
-  `data` varchar(50) NOT NULL,
-  `obs` text DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+-- Registro singleton da identidade documental da oficina. Variáveis de
+-- ambiente servem apenas como fallback enquanto esta linha ainda não existir.
+CREATE TABLE IF NOT EXISTS configuracao_oficina (
+  id TINYINT UNSIGNED NOT NULL,
+  nome VARCHAR(150) NOT NULL,
+  documento VARCHAR(30) NOT NULL,
+  telefone VARCHAR(30) NOT NULL,
+  email VARCHAR(150) NOT NULL,
+  endereco VARCHAR(250) NOT NULL,
+  atualizadoEm DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  atualizadoPor INT DEFAULT NULL,
+  PRIMARY KEY (id),
+  CONSTRAINT chk_configuracao_oficina_singleton CHECK (id = 1)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `movimentacoes`
---
+CREATE TABLE IF NOT EXISTS pecas (
+  id INT NOT NULL AUTO_INCREMENT,
+  nome VARCHAR(100) NOT NULL,
+  descricao TEXT DEFAULT NULL,
+  categoria VARCHAR(50) DEFAULT NULL,
+  localizacao VARCHAR(100) DEFAULT NULL,
+  quantidade INT NOT NULL DEFAULT 0,
+  min INT NOT NULL DEFAULT 5,
+  preco DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  PRIMARY KEY (id),
+  CONSTRAINT chk_pecas_quantidade CHECK (quantidade >= 0),
+  CONSTRAINT chk_pecas_min CHECK (min >= 0),
+  CONSTRAINT chk_pecas_preco CHECK (preco >= 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO `movimentacoes` (`id`, `tipo`, `pecaId`, `quantidade`, `data`, `obs`) VALUES
-(1, 'saida', 'PEC-001', 1, '2026-03-24', ''),
-(2, 'saida', 'PEC-001', 1, '2026-03-24', ''),
-(3, 'entrada', 'PEC-001', 1, '2026-03-24', ''),
-(4, 'saida', '2', 1, '2026-03-24', ''),
-(5, 'saida', '3', 1, '2026-03-24', ''),
-(6, 'entrada', '6', 1, '2026-03-26', ''),
-(7, 'entrada', '4', 1, '2026-03-26', ''),
-(8, 'entrada', '6', 1, '2026-03-26', ''),
-(9, 'Entrada', '6', 1, '2026-03-26', ''),
-(10, 'Entrada', '6', 1, '2026-03-26', ''),
-(11, 'Saída', '6', 1, '2026-03-26', ''),
-(12, 'Entrada', '6', 1, '2026-03-26', ''),
-(13, 'Entrada', '4', 1, '2026-03-26', ''),
-(14, 'Saída', '6', 1, '2026-03-26', ''),
-(15, 'Entrada', '6', 1, '2026-03-26', ''),
-(16, 'Entrada', '7', 3, '2026-03-26', 'Ok'),
-(17, 'Entrada', '6', 1, '2026-03-26', ''),
-(18, 'Saída', '6', 1, '2026-03-26', ''),
-(19, 'Saída', '9', 3, '2026-03-26', '');
+CREATE TABLE IF NOT EXISTS solicitacoes (
+  id INT NOT NULL AUTO_INCREMENT,
+  nomeCliente VARCHAR(100) NOT NULL,
+  emailCliente VARCHAR(150) NOT NULL,
+  telefone VARCHAR(20) DEFAULT NULL,
+  veiculo VARCHAR(100) NOT NULL,
+  ano VARCHAR(10) DEFAULT NULL,
+  placa VARCHAR(20) DEFAULT NULL,
+  problema TEXT NOT NULL,
+  urgencia ENUM('Baixa', 'Média', 'Alta') NOT NULL DEFAULT 'Média',
+  status ENUM(
+    'Pendente',
+    'Em Análise',
+    'Aguardando Aprovação',
+    'Aprovado',
+    'Em Andamento',
+    'Concluído',
+    'Rejeitado'
+  ) NOT NULL DEFAULT 'Pendente',
+  dataCriacao DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  custoSugerido DECIMAL(10,2) DEFAULT NULL,
+  osNumero VARCHAR(50) DEFAULT NULL,
+  responsavel VARCHAR(100) DEFAULT NULL,
+  dataInicio DATE DEFAULT NULL,
+  orcamentoVersao INT UNSIGNED NOT NULL DEFAULT 0,
+  orcamentoHash CHAR(64) DEFAULT NULL,
+  decisao ENUM('Aprovado', 'Rejeitado') DEFAULT NULL,
+  decisaoEm DATETIME DEFAULT NULL,
+  decisaoUsuarioId INT DEFAULT NULL,
+  decisaoOrigem ENUM('cliente', 'gerente') DEFAULT NULL,
+  arquivado TINYINT(1) NOT NULL DEFAULT 0,
+  arquivado_em DATETIME DEFAULT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_solicitacoes_osNumero (osNumero),
+  KEY idx_solicitacoes_email (emailCliente),
+  KEY idx_solicitacoes_status (status),
+  KEY idx_solicitacoes_data (dataCriacao)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- --------------------------------------------------------
+-- Migração contratual idempotente para instalações existentes. As definições
+-- ausentes são reunidas em um único ALTER TABLE, sem apagar ou reescrever OSs.
+SET @autoassis_colunas_contratuais := (
+  SELECT GROUP_CONCAT(d.definicao ORDER BY d.ordem SEPARATOR ', ')
+  FROM (
+    SELECT 1 AS ordem, 'responsavel' AS coluna,
+      'ADD COLUMN responsavel VARCHAR(100) DEFAULT NULL' AS definicao
+    UNION ALL SELECT 2, 'dataInicio',
+      'ADD COLUMN dataInicio DATE DEFAULT NULL'
+    UNION ALL SELECT 3, 'orcamentoVersao',
+      'ADD COLUMN orcamentoVersao INT UNSIGNED NOT NULL DEFAULT 0'
+    UNION ALL SELECT 4, 'orcamentoHash',
+      'ADD COLUMN orcamentoHash CHAR(64) DEFAULT NULL'
+    UNION ALL SELECT 5, 'decisao',
+      'ADD COLUMN decisao ENUM(''Aprovado'', ''Rejeitado'') DEFAULT NULL'
+    UNION ALL SELECT 6, 'decisaoEm',
+      'ADD COLUMN decisaoEm DATETIME DEFAULT NULL'
+    UNION ALL SELECT 7, 'decisaoUsuarioId',
+      'ADD COLUMN decisaoUsuarioId INT DEFAULT NULL'
+    UNION ALL SELECT 8, 'decisaoOrigem',
+      'ADD COLUMN decisaoOrigem ENUM(''cliente'', ''gerente'') DEFAULT NULL'
+  ) AS d
+  LEFT JOIN information_schema.COLUMNS AS c
+    ON c.TABLE_SCHEMA = DATABASE()
+   AND c.TABLE_NAME = 'solicitacoes'
+   AND c.COLUMN_NAME = d.coluna
+  WHERE c.COLUMN_NAME IS NULL
+);
+SET @autoassis_migracao_contratual_sql := IF(
+  @autoassis_colunas_contratuais IS NULL,
+  'SELECT 1',
+  CONCAT('ALTER TABLE solicitacoes ', @autoassis_colunas_contratuais)
+);
+PREPARE autoassis_contrato_stmt FROM @autoassis_migracao_contratual_sql;
+EXECUTE autoassis_contrato_stmt;
+DEALLOCATE PREPARE autoassis_contrato_stmt;
 
---
--- Table structure for table `pecas`
---
+CREATE TABLE IF NOT EXISTS movimentacoes (
+  id INT NOT NULL AUTO_INCREMENT,
+  tipo ENUM('Entrada', 'Saída') NOT NULL,
+  pecaId INT NOT NULL,
+  quantidade INT NOT NULL,
+  data DATE NOT NULL,
+  obs VARCHAR(500) DEFAULT NULL,
+  PRIMARY KEY (id),
+  KEY idx_movimentacoes_peca (pecaId),
+  KEY idx_movimentacoes_data (data),
+  CONSTRAINT fk_movimentacoes_pecas
+    FOREIGN KEY (pecaId) REFERENCES pecas(id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT,
+  CONSTRAINT chk_movimentacoes_quantidade CHECK (quantidade > 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `pecas` (
-  `id` int(20) NOT NULL,
-  `nome` varchar(100) NOT NULL,
-  `categoria` varchar(50) DEFAULT NULL,
-  `localizacao` varchar(50) DEFAULT NULL,
-  `quantidade` int(11) DEFAULT 0,
-  `min` int(11) DEFAULT 5,
-  `preco` decimal(10,2) DEFAULT 0.00
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+-- Trilha imutável de responsabilidade operacional. Não há chave estrangeira
+-- para que a autoria permaneça preservada mesmo após a remoção de um acesso.
+CREATE TABLE IF NOT EXISTS auditoria (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  usuarioId INT DEFAULT NULL,
+  usuarioNome VARCHAR(100) NOT NULL,
+  usuarioEmail VARCHAR(150) DEFAULT NULL,
+  usuarioTipo ENUM('cliente', 'gerente', 'mecanico', 'sistema') NOT NULL,
+  acao VARCHAR(30) NOT NULL,
+  entidade VARCHAR(50) NOT NULL,
+  entidadeId VARCHAR(64) DEFAULT NULL,
+  resumo VARCHAR(255) NOT NULL,
+  dadosAntes JSON DEFAULT NULL,
+  dadosDepois JSON DEFAULT NULL,
+  ip VARCHAR(45) DEFAULT NULL,
+  requisicaoId VARCHAR(64) DEFAULT NULL,
+  criadoEm DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_auditoria_criadoEm (criadoEm),
+  KEY idx_auditoria_usuario (usuarioId),
+  KEY idx_auditoria_entidade (entidade, entidadeId),
+  KEY idx_auditoria_acao (acao)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `pecas`
---
-
-INSERT INTO `pecas` (`id`, `nome`, `categoria`, `localizacao`, `quantidade`, `min`, `preco`) VALUES
-(2, 'motor', 'Motor', 'b4', 9, 5, 15.00),
-(3, 'Suspensão', 'Suspensão', 'c4', 10, 1, 10.00),
-(5, 'Filtro de óleo', 'Fluidos', 'Prateleira B3', 110, 50, 20.00),
-(6, 'Oleo', 'Fluidos', 'B4', 5, 5, 10.00),
-(7, 'Escapamento', 'Motor', 'Prateleira B2', 6, 5, 500.00),
-(8, 'Carburador', 'Outros', 'Prateleira a3', 1, 5, 200.05),
-(9, 'Bico injetor', 'Outros', 'Prateleira a4', 6, 5, 150.00);
-
--- --------------------------------------------------------
-
---
--- Table structure for table `solicitacoes`
---
-
-CREATE TABLE `solicitacoes` (
-  `id` int(11) NOT NULL,
-  `nomeCliente` varchar(100) NOT NULL,
-  `emailCliente` varchar(100) NOT NULL,
-  `telefone` varchar(20) DEFAULT NULL,
-  `veiculo` varchar(100) NOT NULL,
-  `ano` varchar(10) DEFAULT NULL,
-  `placa` varchar(20) DEFAULT NULL,
-  `problema` text NOT NULL,
-  `urgencia` varchar(20) DEFAULT NULL,
-  `status` varchar(50) DEFAULT 'Pendente',
-  `dataCriacao` varchar(50) DEFAULT NULL,
-  `custoSugerido` decimal(10,2) DEFAULT NULL,
-  `osNumero` varchar(50) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `solicitacoes`
---
-
-INSERT INTO `solicitacoes` (`id`, `nomeCliente`, `emailCliente`, `telefone`, `veiculo`, `ano`, `placa`, `problema`, `urgencia`, `status`, `dataCriacao`, `custoSugerido`, `osNumero`) VALUES
-(23, 'Geraldo de Souza Martins Neto', 'gemartineto@gmail.com', '(43) 96941226', 'onix', '2018', 'ABC-1234', 'ivfldjspfkfpolçekopf', 'Baixa', 'Concluído', '2026-03-24T18:55:05.522Z', 100.00, 'OS-1060'),
-(24, 'Geraldo de Souza Martins Neto', 'gemartineto@gmail.com', '(43) 96941226', 'onix', '2018', 'ABC-1234', 'djslfrenwolfnwln', 'Média', 'Concluído', '2026-03-24T19:22:02.132Z', 100.00, 'OS-2812'),
-(25, 'Natyla', 'natylabusnello@gmail.com', '43 991672106', 'fiat uno', '2018', 'ABC-1234', 'ofdsjofijooijoijk', 'Média', 'Aguardando Aprovação', '2026-03-24T19:35:06.689Z', 100.00, 'OS-6816'),
-(26, 'dsfegrefagrs', 'gejfeoijfoeijfo@gmail.com', '(43) 96941226', 'uno', '2018', 'ABC-1233', 'dsgrgdgrgdjesfji', 'Média', 'Concluído', '2026-03-24T19:36:00.566Z', 1000.00, 'OS-8670'),
-(27, 'Geraldo de Souza Martins Neto', 'gemartineto@gmail.com', '43 991672106', 'fiat', '2018', 'ABC-1234', 'disfnofjofjojojofjok', 'Média', 'Concluído', '2026-03-24T19:38:13.011Z', 100.00, 'OS-2269'),
-(28, 'Gustavo Fridous', 'gufridous@gmail.com', '(43) 96941226', 'onix', '2018', 'ABC-1234', 'Ta com problema no filtro', 'Média', 'Concluído', '2026-03-25T23:51:40.445Z', 100.00, 'OS-6586'),
-(29, 'Gustavo fridous', 'gufridous@gmail.com', '43 991202612', 'uno', '2018', 'ABC-1234', 'Cliente falou que esta com problema no motor', 'Média', 'Concluído', '2026-03-25T23:56:28.699Z', 100.00, 'OS-3489'),
-(30, 'Dodo', 'natybusnello@gmail.com', '(43) 96941226', 'onix', '2018', 'ABC-1234', 'foeofrokefkosfk', 'Baixa', 'Concluído', '2026-03-26T00:04:21.346Z', 100.00, 'OS-7686'),
-(32, 'Dodo', 'natybusnello@gmail.com', '(43) 96941226', 'onix', '2018', 'ABC-1234', 'parou de vez aqui', 'Alta', 'Concluído', '2026-03-26T00:07:41.804Z', 100.00, 'OS-4135'),
-(36, 'Geraldo', 'gemartineto@gmail.com', '43 991672106', 'uno', '2000', 'ABC-1234', 'ele esta com problema no motor', 'Média', 'Aguardando Aprovação', '2026-03-26T17:03:09.680Z', 100.00, 'OS-5371'),
-(39, 'João', 'supermatheusdamas@gmail.com', '43984248116', 'Peugeot Escapade', '2009', 'mat1604', 'Problema no disco de freio', 'Média', 'Concluído', '2026-03-26T17:19:23.208Z', 900.00, 'OS-2835'),
-(40, 'Matheus Damas Assis', 'banha@gmail.com', '43 984248116', 'Onix 1.0', '2015', 'ABC1234', 'Ta com problema no disco', 'Alta', 'Em Análise', '2026-03-26T17:34:57.158Z', NULL, NULL);
-
---
--- Indexes for dumped tables
---
-
---
--- Indexes for table `movimentacoes`
---
-ALTER TABLE `movimentacoes`
-  ADD PRIMARY KEY (`id`);
-
---
--- Indexes for table `pecas`
---
-ALTER TABLE `pecas`
-  ADD PRIMARY KEY (`id`);
-
---
--- Indexes for table `solicitacoes`
---
-ALTER TABLE `solicitacoes`
-  ADD PRIMARY KEY (`id`);
-
---
--- AUTO_INCREMENT for dumped tables
---
-
---
--- AUTO_INCREMENT for table `movimentacoes`
---
-ALTER TABLE `movimentacoes`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
-
---
--- AUTO_INCREMENT for table `pecas`
---
-ALTER TABLE `pecas`
-  MODIFY `id` int(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
-
---
--- AUTO_INCREMENT for table `solicitacoes`
---
-ALTER TABLE `solicitacoes`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
-COMMIT;
-
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+-- Depois da importação, execute `npm run create-admin` com as variáveis
+-- ADMIN_NAME, ADMIN_EMAIL e ADMIN_PASSWORD definidas apenas para esse comando.

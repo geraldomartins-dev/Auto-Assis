@@ -1,120 +1,523 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8">
-   <meta name="viewport" content="width=device-width,initial-scale=1">
   <script src="auth.js"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Criar/Editar Peça — Auto+Assis</title>
+  <link rel="stylesheet" href="product.css">
   <style>
-    :root{
-      --bg:#0a0a0a; --panel:#0f0f0f; --accent:#ff6a00; --white:#ffffff;
-      --muted:#cccccc; --success:#22c55e; --danger:#ff4d4d; --radius:12px;
-      --shadow:0 8px 30px rgba(0,0,0,0.6);
-      font-family:Inter,system-ui,sans-serif;
+    :root {
+      --paper: #eceae2;
+      --paper-strong: #f7f5ee;
+      --graphite: #202322;
+      --graphite-deep: #151817;
+      --ink: #202321;
+      --ink-soft: #626660;
+      --rule: #c8c5ba;
+      --safety: #f36b21;
+      --safety-soft: #ffe0cc;
+      --success: #287a53;
+      --danger: #a53b31;
+      font-family: "Arial Narrow", "Roboto Condensed", Inter, Arial, sans-serif !important;
     }
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{background:var(--bg);color:var(--white);font-family:Inter,sans-serif;}
-    .container{display:flex;height:100vh;}
-    aside{width:260px;background:var(--panel);padding:24px;display:flex;flex-direction:column;gap:18px;}
-    aside .logo{display:flex;align-items:center;gap:12px;font-weight:700;}
-    aside .logo .mark{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#ffa257);display:flex;align-items:center;justify-content:center;color:var(--bg);font-weight:800;}
-    aside nav{flex:1;display:flex;flex-direction:column;gap:12px;}
-    aside nav a{display:block;padding:10px 14px;border-radius:10px;color:var(--white);text-decoration:none;}
-    aside nav a.active, aside nav a:hover{background:rgba(255,106,0,0.2);}
-    main{flex:1;padding:24px;overflow-y:auto;}
-    .form-box{background:var(--panel);padding:24px;border-radius:var(--radius);box-shadow:var(--shadow);display:flex;flex-direction:column;gap:20px;max-width:600px;margin-top:12px;}
-    .row{display:flex;gap:18px;flex-wrap:wrap;}
-    .field{flex:1;display:flex;flex-direction:column;gap:6px;min-width:240px;}
-    .field label{font-size:14px;color:var(--white);}
-    .field input, .field select, .field textarea{
-      padding:12px;border-radius:10px;border:none;background:#141414;color:var(--white);
-      outline:none;border:1px solid rgba(255,255,255,0.1);
+
+    * { box-sizing: border-box; }
+    html { background: var(--paper) !important; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink) !important;
+      background-color: var(--paper) !important;
+      background-image:
+        linear-gradient(rgba(31, 35, 33, .045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(31, 35, 33, .045) 1px, transparent 1px) !important;
+      background-size: 24px 24px !important;
+      letter-spacing: 0 !important;
     }
-    .field textarea{resize:vertical;min-height:90px;line-height:1.5;}
-    .buttons{display:flex;justify-content:flex-end;gap:12px;margin-top:12px;}
-    .buttons button{padding:10px 18px;border-radius:10px;border:none;cursor:pointer;transition:0.2s;}
-    .cancel{background:rgba(255,255,255,0.1);color:var(--white);}
-    .save{background:linear-gradient(90deg,var(--accent),#ff8a3d);color:var(--white);font-weight:bold;}
+    body::after { display: none !important; }
+    .page-enter { animation: none !important; }
+
+    .workshop-shell { display: flex; width: 100%; min-height: 100vh; }
+    body.app-page aside {
+      width: 252px !important;
+      min-width: 252px !important;
+      padding: 26px 18px 20px !important;
+      background: var(--graphite-deep) !important;
+      border: 0 !important;
+      border-right: 7px solid var(--safety) !important;
+      box-shadow: none !important;
+      backdrop-filter: none !important;
+    }
+    body.app-page aside::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: -7px;
+      width: 7px;
+      height: 86px;
+      background: repeating-linear-gradient(-45deg, #171a19 0 7px, var(--safety) 7px 14px);
+    }
+    body.app-page aside .logo {
+      min-height: 54px;
+      margin: 0 6px 28px !important;
+      color: #f2f0e9 !important;
+      font-family: Inter, Arial, sans-serif;
+      font-size: 18px !important;
+      letter-spacing: -.03em !important;
+    }
+    body.app-page aside .logo small {
+      display: block;
+      margin-top: 3px;
+      color: #858c87;
+      font: 700 9px/1.1 Inter, Arial, sans-serif;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+    body.app-page aside .logo .industrial-mark {
+      width: 46px !important;
+      height: 46px !important;
+      flex-basis: 46px !important;
+      border: 2px solid var(--safety) !important;
+      border-radius: 0 !important;
+      color: var(--safety) !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      transform: skew(-7deg);
+    }
+    body.app-page aside nav { gap: 2px !important; }
+    body.app-page aside nav::before {
+      content: "MÓDULOS / 07" !important;
+      margin: 0 10px 12px !important;
+      color: #777e79 !important;
+      font-size: 9px !important;
+      letter-spacing: .2em !important;
+    }
+    body.app-page aside nav a {
+      min-height: 41px;
+      padding: 0 10px 0 38px !important;
+      border: 0 !important;
+      border-bottom: 1px solid #2a2e2c !important;
+      border-radius: 0 !important;
+      color: #aeb4b0 !important;
+      background: transparent !important;
+      font: 650 12px/1 Inter, Arial, sans-serif;
+      text-transform: uppercase;
+      letter-spacing: .045em;
+    }
+    body.app-page aside nav a::before {
+      position: absolute;
+      left: 9px;
+      color: #626963;
+      font: 700 9px/1 "Courier New", monospace;
+    }
+    body.app-page aside nav a:nth-child(1)::before { content: "01"; }
+    body.app-page aside nav a:nth-child(2)::before { content: "02"; }
+    body.app-page aside nav a:nth-child(3)::before { content: "03"; }
+    body.app-page aside nav a:nth-child(4)::before { content: "04"; }
+    body.app-page aside nav a:nth-child(5)::before { content: "05"; }
+    body.app-page aside nav a:nth-child(6)::before { content: "06"; }
+    body.app-page aside nav a:nth-child(7)::before { content: "07"; }
+    body.app-page aside nav a .nav-icon { display: none !important; }
+    body.app-page aside nav a:hover {
+      color: #fff !important;
+      background: #242826 !important;
+      transform: none !important;
+    }
+    body.app-page aside nav a.active {
+      color: #151817 !important;
+      background: var(--safety) !important;
+      box-shadow: none !important;
+    }
+    body.app-page aside nav a.active::before { color: #151817; }
+    body.app-page aside .profile-card {
+      position: relative;
+      margin-top: auto !important;
+      padding: 14px 12px 12px 42px !important;
+      border: 1px solid #353a37 !important;
+      border-radius: 0 !important;
+      color: #f1efe8;
+      background: #1d211f !important;
+      text-align: left !important;
+      font: 600 12px/1.3 Inter, Arial, sans-serif;
+    }
+    body.app-page aside .profile-card::before {
+      content: "G";
+      position: absolute;
+      left: 11px;
+      top: 12px;
+      display: grid;
+      place-items: center;
+      width: 23px;
+      height: 23px;
+      color: #151817;
+      background: var(--safety);
+      font-size: 10px;
+      font-weight: 900;
+    }
+    body.app-page aside .profile-card small { color: #818984 !important; }
+    body.app-page aside > button {
+      min-height: 39px;
+      margin-top: 8px !important;
+      border: 1px solid #4b3530 !important;
+      border-radius: 0 !important;
+      color: #d99385 !important;
+      background: transparent !important;
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: .12em;
+    }
+
+    body.app-page main {
+      padding: 0 0 54px !important;
+      color: var(--ink) !important;
+      background: transparent !important;
+      overflow-x: hidden;
+    }
+    .document-header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      min-height: 168px;
+      border-bottom: 1px solid var(--ink);
+      background: rgba(247, 245, 238, .92);
+    }
+    .document-title { padding: 30px clamp(24px, 5vw, 66px) 26px; }
+    .document-code {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 18px;
+      color: var(--ink-soft);
+      font: 700 10px/1 "Courier New", monospace;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .document-code::before { content: ""; width: 26px; height: 5px; background: var(--safety); }
+    .document-title h1,
+    body.app-page main .document-title h1 {
+      color: var(--ink) !important;
+      font: 800 clamp(34px, 5vw, 62px)/.88 "Arial Narrow", Inter, sans-serif !important;
+      letter-spacing: -.055em !important;
+      text-transform: uppercase;
+    }
+    .document-title p,
+    body.app-page main .document-title h1 + p {
+      max-width: 650px;
+      margin: 15px 0 0 !important;
+      color: var(--ink-soft) !important;
+      font: 500 13px/1.55 Inter, Arial, sans-serif !important;
+    }
+    .document-stamp {
+      display: grid;
+      align-content: center;
+      min-width: 190px;
+      padding: 26px 30px;
+      border-left: 1px solid var(--ink);
+      color: var(--paper-strong);
+      background: var(--graphite);
+    }
+    .document-stamp span { color: #89908b; font: 700 9px/1 Inter, sans-serif; letter-spacing: .15em; text-transform: uppercase; }
+    .document-stamp strong { margin-top: 8px; color: var(--safety); font: 800 28px/1 "Courier New", monospace; }
+    .document-stamp small { margin-top: 8px; color: #a7ada8; font: 600 10px/1.3 Inter, sans-serif; }
+
+    .sheet-wrap { width: min(1100px, calc(100% - 48px)); margin: 34px auto 0; }
+    .technical-sheet.form-box {
+      position: relative;
+      display: block;
+      max-width: none;
+      margin: 0;
+      padding: 0 !important;
+      border: 1px solid var(--ink) !important;
+      border-radius: 0 !important;
+      color: var(--ink);
+      background: var(--paper-strong) !important;
+      box-shadow: 12px 12px 0 rgba(32, 35, 33, .11) !important;
+      clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%);
+    }
+    .technical-sheet::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 18px;
+      height: 18px;
+      background: var(--safety);
+    }
+    .sheet-meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      border-bottom: 1px solid var(--ink);
+      background: #dedbd1;
+    }
+    .sheet-meta div { padding: 10px 18px; border-right: 1px solid var(--ink); }
+    .sheet-meta div:last-child { border-right: 0; }
+    .sheet-meta span { display: block; margin-bottom: 4px; color: #71766f; font: 700 8px/1 Inter, sans-serif; letter-spacing: .12em; text-transform: uppercase; }
+    .sheet-meta strong { color: var(--ink); font: 700 11px/1.2 "Courier New", monospace; }
+    .sheet-section {
+      display: grid;
+      grid-template-columns: 112px minmax(0, 1fr);
+      border-bottom: 1px solid var(--rule);
+    }
+    .sheet-section:last-of-type { border-bottom: 0; }
+    .section-index {
+      padding: 24px 18px;
+      border-right: 1px solid var(--rule);
+      color: #8e918b;
+      background: #efede6;
+      font: 800 36px/.9 "Arial Narrow", Inter, sans-serif;
+    }
+    .section-index span { display: block; margin-top: 10px; color: var(--ink); font: 800 9px/1.2 Inter, sans-serif; letter-spacing: .08em; text-transform: uppercase; }
+    .section-fields { padding: 24px 26px 27px; }
+    .row { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 18px; }
+    .row + .row, .row + .field, .field + .row { margin-top: 18px; }
+    .field { display: flex; flex-direction: column; min-width: 0; gap: 7px; }
+    .span-8 { grid-column: span 8; }
+    .span-7 { grid-column: span 7; }
+    .span-6 { grid-column: span 6; }
+    .span-5 { grid-column: span 5; }
+    .span-4 { grid-column: span 4; }
+    .technical-sheet label {
+      color: #343834 !important;
+      font: 800 10px/1 Inter, sans-serif !important;
+      letter-spacing: .075em;
+      text-transform: uppercase;
+    }
+    .technical-sheet input,
+    .technical-sheet select,
+    .technical-sheet textarea {
+      width: 100%;
+      min-height: 45px;
+      padding: 11px 12px !important;
+      border: 1px solid #9b9b92 !important;
+      border-radius: 0 !important;
+      color: var(--ink) !important;
+      background: #fffefa !important;
+      box-shadow: none !important;
+      font: 600 14px/1.35 Inter, Arial, sans-serif;
+    }
+    .technical-sheet input:focus,
+    .technical-sheet select:focus,
+    .technical-sheet textarea:focus {
+      border-color: var(--ink) !important;
+      box-shadow: inset 5px 0 0 var(--safety) !important;
+      outline: 0 !important;
+    }
+    .technical-sheet input:disabled,
+    .technical-sheet input[readonly] { color: #666b65 !important; background: #e4e2d9 !important; }
+    .technical-sheet textarea { min-height: 95px; resize: vertical; }
+    .technical-sheet ::placeholder { color: #9a9b94 !important; }
+    .technical-sheet small { color: #71766f; font: 500 11px/1.45 Inter, sans-serif; }
+    .sheet-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 20px 26px;
+      border-top: 1px solid var(--ink);
+      background: #dedbd1;
+    }
+    .action-note { color: #666a64; font: 600 10px/1.4 "Courier New", monospace; text-transform: uppercase; }
+    .button-group { display: flex; gap: 8px; }
+    .sheet-actions button {
+      min-height: 44px;
+      padding: 0 20px !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      font: 800 10px/1 Inter, sans-serif !important;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      clip-path: polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 0 100%);
+    }
+    .sheet-actions .cancel {
+      border: 1px solid #777b75 !important;
+      color: var(--ink) !important;
+      background: transparent !important;
+    }
+    .sheet-actions .save {
+      border: 1px solid var(--graphite) !important;
+      color: #fff !important;
+      background: var(--graphite) !important;
+    }
+    .sheet-actions .save::after { content: "  →"; color: var(--safety); }
+    .product-footer {
+      width: min(1100px, calc(100% - 48px));
+      margin: 28px auto 0;
+      border-top-color: #bbb8ae;
+      color: #777b75;
+    }
+
+    @media (max-width: 900px) {
+      body.app-page { padding-top: 58px !important; }
+      body.app-page aside {
+        width: min(286px, 84vw) !important;
+        min-width: 0 !important;
+        border-right-width: 6px !important;
+      }
+      .mobile-topbar {
+        height: 58px !important;
+        border-bottom: 5px solid var(--safety) !important;
+        color: #f2f0e9 !important;
+        background: var(--graphite-deep) !important;
+        box-shadow: none !important;
+      }
+      .mobile-brand .mark {
+        border: 1px solid var(--safety) !important;
+        border-radius: 0 !important;
+        color: var(--safety) !important;
+        background: transparent !important;
+        box-shadow: none !important;
+      }
+      .mobile-menu {
+        border: 1px solid #535a55 !important;
+        border-radius: 0 !important;
+        color: #fff !important;
+        background: transparent !important;
+      }
+      body.app-page main { padding: 0 0 42px !important; }
+      .document-header { grid-template-columns: 1fr; }
+      .document-title { padding: 26px 22px 24px; }
+      .document-stamp { min-width: 0; padding: 15px 22px; border: 0; border-top: 1px solid var(--ink); }
+      .document-stamp strong { font-size: 21px; }
+      .sheet-wrap { width: calc(100% - 28px); margin-top: 22px; }
+      .sheet-section { grid-template-columns: 60px minmax(0, 1fr); }
+      .section-index { padding: 21px 12px; font-size: 25px; }
+      .section-index span { writing-mode: vertical-rl; transform: rotate(180deg); margin: 12px auto 0; }
+      .section-fields { padding: 20px 16px 22px; }
+      .row { grid-template-columns: 1fr; gap: 15px; }
+      .span-8, .span-7, .span-6, .span-5, .span-4 { grid-column: auto; }
+      .sheet-meta { grid-template-columns: 1fr; }
+      .sheet-meta div { border-right: 0; border-bottom: 1px solid #b8b5ab; }
+      .sheet-meta div:last-child { border-bottom: 0; }
+      .sheet-actions { align-items: stretch; flex-direction: column; padding: 18px 16px; }
+      .button-group { display: grid; grid-template-columns: 1fr; }
+      .sheet-actions button { width: 100%; }
+      .product-footer { width: calc(100% - 28px); }
+    }
   </style>
+  <script src="ui.js" defer></script>
+  <meta name="theme-color" content="#151817">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
 </head>
 <body>
-  <div class="container">
+  <div class="container workshop-shell">
     <aside>
-      <div class="logo"><span class="mark">A+</span> Auto+Assis</div>
+      <div class="logo">
+        <span class="mark industrial-mark">A+</span>
+        <span>Auto+Assis<small>Oficina / Controle</small></span>
+      </div>
       <nav>
         <a href="dashboard.html">Dashboard</a>
         <a href="estoque.html" class="active">Estoque</a>
         <a href="movimentacao.html">Movimentações</a>
         <a href="servicos.html">Serviços</a>
         <a href="relatorio.html">Relatórios</a>
-        <a href="consultas.html">Consultas Rápidas</a>
+        <a href="consultas.html">Consultas rápidas</a>
+        <a href="gerentes.html">Gerentes</a>
       </nav>
-      <div class="user"><strong></strong><br>Gerente</div>
-      <button onclick="window.location.href='login.html'" style="background:rgba(255,77,77,0.2); color:#ff4d4d; border:none; padding:10px; border-radius:10px; cursor:pointer;">Sair</button>
+      <div class="user profile-card"><strong>Administrador</strong><br><small>Gerente de operação</small></div>
+      <button type="button" onclick="window.apiAuth.logout()">Encerrar sessão</button>
     </aside>
 
     <main>
-      <h1 id="pageTitle">Criar Nova Peça</h1>
-      <p id="pageLead">Preencha os dados da peça para adicionar ao estoque.</p>
-      
-      <form id="pecaForm" class="form-box">
-        <div class="row">
-            <div class="field" style="flex: 2;">
-                <label for="nome">Nome da Peça *</label>
-                <input id="nome" type="text" placeholder="Ex: Filtro de Óleo" required>
-            </div>
-            <div class="field" style="flex: 1;">
-                <label for="pecaId">ID do Sistema</label>
-                <input id="pecaId" type="text" placeholder="Automático" disabled style="background:#1e1e1e; color:#888;">
-            </div>
+      <header class="document-header">
+        <div class="document-title">
+          <div class="document-code page-overline">Estoque / Ficha de material</div>
+          <h1 id="pageTitle">Cadastrar peça</h1>
+          <p id="pageLead">Registre a peça com os dados necessários para identificação, localização e controle de reposição.</p>
         </div>
+        <div class="document-stamp" aria-label="Identificação do documento">
+          <span>Documento</span>
+          <strong>MAT–01</strong>
+          <small>Cadastro interno<br>Auto+Assis</small>
+        </div>
+      </header>
 
-        <div class="field">
-            <label for="descricao">Descrição da Peça</label>
-            <textarea id="descricao" placeholder="Ex: Compatível com motores 1.0, usado em revisão preventiva..."></textarea>
-        </div>
+      <div class="sheet-wrap">
+        <form id="pecaForm" class="form-box technical-sheet">
+          <div class="sheet-meta" aria-label="Metadados da ficha">
+            <div><span>Tipo de registro</span><strong>ITEM DE ESTOQUE</strong></div>
+            <div><span>Origem</span><strong>CADASTRO MANUAL</strong></div>
+            <div><span>Campos obrigatórios</span><strong>MARCADOS COM *</strong></div>
+          </div>
 
-        <div class="row">
-            <div class="field">
-                <label for="categoria">Categoria *</label>
-                <select id="categoria" required>
-                  <option value="">Selecione a Categoria</option>
-                  <option>Fluidos</option>
-                  <option>Elétrica</option>
-                  <option>Freios</option>
-                  <option>Filtros</option>
-                  <option>Suspensão</option>
-                  <option>Motor</option>
-                  <option>Outros</option>
-                </select>
+          <section class="sheet-section" aria-labelledby="sec-identificacao">
+            <div class="section-index">01<span id="sec-identificacao">Identificação</span></div>
+            <div class="section-fields">
+              <div class="row">
+                <div class="field span-8">
+                  <label for="nome">Nome da peça *</label>
+                  <input id="nome" type="text" placeholder="Ex.: Filtro de óleo" required>
+                </div>
+                <div class="field span-4">
+                  <label for="pecaId">ID do sistema</label>
+                  <input id="pecaId" type="text" placeholder="Gerado automaticamente" disabled>
+                </div>
+              </div>
+              <div class="field">
+                <label for="descricao">Descrição técnica</label>
+                <textarea id="descricao" placeholder="Aplicação, compatibilidade, referência do fabricante ou observações técnicas"></textarea>
+              </div>
             </div>
-            <div class="field">
-                <label for="localizacao">Localização</label>
-                <input id="localizacao" type="text" placeholder="Ex: Prateleira B2">
-            </div>
-        </div>
+          </section>
 
-        <div class="row">
-            <div class="field">
-                <label for="quantidade">Qtd. Inicial/Atual *</label>
-                <input id="quantidade" type="number" min="0" value="1" required>
+          <section class="sheet-section" aria-labelledby="sec-classificacao">
+            <div class="section-index">02<span id="sec-classificacao">Classificação</span></div>
+            <div class="section-fields">
+              <div class="row">
+                <div class="field span-6">
+                  <label for="categoria">Categoria *</label>
+                  <select id="categoria" required>
+                    <option value="">Selecione a categoria</option>
+                    <option>Fluidos</option>
+                    <option>Elétrica</option>
+                    <option>Freios</option>
+                    <option>Filtros</option>
+                    <option>Suspensão</option>
+                    <option>Motor</option>
+                    <option>Outros</option>
+                  </select>
+                </div>
+                <div class="field span-6">
+                  <label for="localizacao">Endereço físico</label>
+                  <input id="localizacao" type="text" placeholder="Ex.: Corredor 02 / Prateleira B / Nível 2">
+                </div>
+              </div>
             </div>
-            <div class="field">
-                <label for="min">Qtd. Mínima (Alerta)</label>
-                <input id="min" type="number" min="0" value="5">
-            </div>
-        </div>
-        
-        <div class="field">
-            <label for="preco">Preço Unitário (R$)</label>
-            <input id="preco" type="number" step="0.01" value="0.00">
-        </div>
+          </section>
 
-        <div class="buttons">
-          <button type="button" class="cancel" onclick="window.location.href='estoque.html'">Cancelar</button>
-          <button type="submit" class="save" id="submitBtn">Salvar Peça</button>
-        </div>
-      </form>
+          <section class="sheet-section" aria-labelledby="sec-controle">
+            <div class="section-index">03<span id="sec-controle">Controle</span></div>
+            <div class="section-fields">
+              <div class="row">
+                <div class="field span-4">
+                  <label for="quantidade" id="quantidadeLabel">Quantidade inicial *</label>
+                  <input id="quantidade" type="number" min="0" value="1" required>
+                  <small id="quantidadeHint" hidden>Para preservar a auditoria, altere o saldo pela tela Movimentações.</small>
+                </div>
+                <div class="field span-4">
+                  <label for="min">Estoque mínimo</label>
+                  <input id="min" type="number" min="0" value="5">
+                  <small>O sistema usa este valor para alertas de reposição.</small>
+                </div>
+                <div class="field span-4">
+                  <label for="preco">Preço unitário (R$)</label>
+                  <input id="preco" type="number" step="0.01" min="0" value="0.00">
+                  <small>Informe o custo ou valor de referência da peça.</small>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <div class="sheet-actions">
+            <span class="action-note">Revise os dados antes de emitir o registro.</span>
+            <div class="button-group">
+              <button type="button" class="cancel" onclick="window.location.href='estoque.html'">Cancelar</button>
+              <button type="submit" class="save" id="submitBtn">Salvar peça</button>
+            </div>
+          </div>
+        </form>
+      </div>
     </main>
   </div>
 
@@ -123,80 +526,84 @@
     const submitBtn = document.getElementById('submitBtn');
     const pageTitle = document.getElementById('pageTitle');
     const pageLead = document.getElementById('pageLead');
-    
-    // Recupera o ID da peça que queremos editar (se houver)
+
     const pecaEditandoId = localStorage.getItem('pecaEditandoId');
 
-    // Ao carregar a página, se houver um ID, busca os dados no banco
     window.addEventListener('load', async () => {
-        if (pecaEditandoId) {
-            pageTitle.textContent = "Editar Peça";
-            pageLead.textContent = "Altere as informações abaixo para atualizar o estoque.";
-            submitBtn.textContent = "Atualizar Peça";
-
-            try {
-                const resposta = await fetch('http://localhost:3000/api/pecas');
-                const pecas = await resposta.json();
-                const peca = pecas.find(p => p.id == pecaEditandoId);
-
-                if (peca) {
-                    document.getElementById('nome').value = peca.nome;
-                    document.getElementById('descricao').value = peca.descricao || '';
-                    document.getElementById('pecaId').value = peca.id; // Mostra o ID real
-                    document.getElementById('categoria').value = peca.categoria;
-                    document.getElementById('localizacao').value = peca.localizacao;
-                    document.getElementById('quantidade').value = peca.quantidade;
-                    document.getElementById('min').value = peca.min;
-                    document.getElementById('preco').value = peca.preco;
-                }
-            } catch (erro) {
-                console.error("Erro ao carregar dados da peça:", erro);
-            }
-        }
-    });
-
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const pecaData = {
-            nome: document.getElementById('nome').value.trim(),
-            descricao: document.getElementById('descricao').value.trim(),
-            categoria: document.getElementById('categoria').value,
-            localizacao: document.getElementById('localizacao').value.trim(),
-            quantidade: parseInt(document.getElementById('quantidade').value),
-            min: parseInt(document.getElementById('min').value),
-            preco: parseFloat(document.getElementById('preco').value) || 0.00,
-        };
-
-        submitBtn.textContent = "A guardar...";
-        submitBtn.disabled = true;
-
-        // Se estiver editando, usa o método PUT e o ID na URL. Se não, usa POST.
-        const url = pecaEditandoId ? `http://localhost:3000/api/pecas/${pecaEditandoId}` : 'http://localhost:3000/api/pecas';
-        const method = pecaEditandoId ? 'PUT' : 'POST';
+      if (pecaEditandoId) {
+        pageTitle.textContent = 'Editar peça';
+        pageLead.textContent = 'Atualize os dados de catálogo. O saldo permanece protegido pelo histórico de movimentações.';
+        submitBtn.textContent = 'Atualizar peça';
+        const quantidadeInput = document.getElementById('quantidade');
+        quantidadeInput.readOnly = true;
+        document.getElementById('quantidadeLabel').textContent = 'Quantidade atual';
+        document.getElementById('quantidadeHint').hidden = false;
 
         try {
-            const resposta = await fetch(url, {
-                method: method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(pecaData)
-            });
+          const resposta = await fetch('/api/pecas');
+          const pecas = await resposta.json();
+          const peca = pecas.find((item) => item.id == pecaEditandoId);
 
-            if (resposta.ok) {
-                alert(pecaEditandoId ? "✅ Peça atualizada!" : "✅ Peça cadastrada!");
-                localStorage.removeItem('pecaEditandoId'); // Limpa após terminar
-                window.location.href = 'estoque.html';
-            } else {
-                alert("❌ Erro ao salvar dados.");
-                submitBtn.disabled = false;
-                submitBtn.textContent = "Salvar Peça";
-            }
+          if (peca) {
+            document.getElementById('nome').value = peca.nome;
+            document.getElementById('descricao').value = peca.descricao || '';
+            document.getElementById('pecaId').value = peca.id;
+            document.getElementById('categoria').value = peca.categoria;
+            document.getElementById('localizacao').value = peca.localizacao;
+            document.getElementById('quantidade').value = peca.quantidade;
+            document.getElementById('min').value = peca.min;
+            document.getElementById('preco').value = peca.preco;
+          }
         } catch (erro) {
-            console.error("Erro:", erro);
-            alert("Não foi possível conectar ao servidor.");
-            submitBtn.disabled = false;
+          console.error('Erro ao carregar dados da peça:', erro);
         }
+      }
     });
-</script>
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const pecaData = {
+        nome: document.getElementById('nome').value.trim(),
+        descricao: document.getElementById('descricao').value.trim(),
+        categoria: document.getElementById('categoria').value,
+        localizacao: document.getElementById('localizacao').value.trim(),
+        quantidade: parseInt(document.getElementById('quantidade').value, 10),
+        min: parseInt(document.getElementById('min').value, 10),
+        preco: parseFloat(document.getElementById('preco').value) || 0,
+      };
+
+      submitBtn.textContent = 'Salvando...';
+      submitBtn.disabled = true;
+
+      const url = pecaEditandoId ? `/api/pecas/${pecaEditandoId}` : '/api/pecas';
+      const method = pecaEditandoId ? 'PUT' : 'POST';
+
+      try {
+        const resposta = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(pecaData)
+        });
+
+        if (resposta.ok) {
+          const mensagem = pecaEditandoId ? 'Peça atualizada com sucesso.' : 'Peça cadastrada com sucesso.';
+          window.productUI?.notify(mensagem, 'success');
+          localStorage.removeItem('pecaEditandoId');
+          setTimeout(() => { window.location.href = 'estoque.html'; }, 450);
+        } else {
+          const dados = await resposta.json().catch(() => ({}));
+          window.productUI?.notify(dados.erro || 'Não foi possível salvar a peça.', 'error');
+          submitBtn.disabled = false;
+          submitBtn.textContent = pecaEditandoId ? 'Atualizar peça' : 'Salvar peça';
+        }
+      } catch (erro) {
+        console.error('Erro:', erro);
+        alert('Não foi possível conectar ao servidor.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = pecaEditandoId ? 'Atualizar peça' : 'Salvar peça';
+      }
+    });
+  </script>
 </body>
 </html>

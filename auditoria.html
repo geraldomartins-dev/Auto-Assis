@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Auditoria — Auto+Assis</title>
+  <link rel="stylesheet" href="product.css">
+</head>
+<body>
+  <aside>
+    <div class="logo"><strong>A+</strong> Auto+Assis</div>
+    <nav></nav>
+    <div class="profile-card"><strong data-user-name>Usuário</strong><small>Gerente</small></div>
+    <button type="button" onclick="apiAuth.logout()">Sair da conta</button>
+  </aside>
+  <main>
+    <header class="page-heading">
+      <div><p class="page-overline">AA/AUD-08 · GOVERNANÇA</p><h1>Registro de auditoria</h1><p>Histórico imutável das alterações feitas pela equipe.</p></div>
+      <button id="atualizar" type="button">Atualizar registros</button>
+    </header>
+    <section class="product-surface">
+      <form id="filtros" class="audit-filters" data-dirty-guard="false">
+        <label>Ação<select id="acao"><option value="">Todas</option><option>CRIAR</option><option>EDITAR</option><option>EXCLUIR</option><option>MOVIMENTAR</option><option>STATUS</option><option>ARQUIVAR</option><option>CONFIGURAR</option></select></label>
+        <label>Módulo<select id="entidade"><option value="">Todos</option><option value="estoque">Estoque</option><option value="peca">Peças</option><option value="equipe">Equipe</option><option value="servico">Serviços</option><option value="oficina">Oficina</option></select></label>
+        <button type="submit">Aplicar filtros</button>
+      </form>
+      <div id="estado" role="status" aria-live="polite">Carregando registros…</div>
+      <div id="lista" class="audit-list"></div>
+      <button id="mais" type="button" hidden>Carregar registros anteriores</button>
+    </section>
+  </main>
+  <script src="auth.js"></script>
+  <script src="ui.js"></script>
+  <script>
+    'use strict';
+    const lista = document.getElementById('lista');
+    const estado = document.getElementById('estado');
+    const mais = document.getElementById('mais');
+    let cursor = null;
+
+    function textoSeguro(valor) { return valor == null || valor === '' ? '—' : String(valor); }
+    function detalhe(titulo, dados) {
+      if (!dados) return null;
+      const box = document.createElement('details');
+      const summary = document.createElement('summary'); summary.textContent = titulo;
+      const pre = document.createElement('pre'); pre.textContent = JSON.stringify(dados, null, 2);
+      box.append(summary, pre); return box;
+    }
+    function render(registro) {
+      const card = document.createElement('article'); card.className = 'audit-entry';
+      const topo = document.createElement('header');
+      const acao = document.createElement('strong'); acao.className = `status-badge status-${registro.acao.toLowerCase()}`; acao.textContent = registro.acao;
+      const data = document.createElement('time'); data.dateTime = registro.criadoEm; data.textContent = new Date(registro.criadoEm).toLocaleString('pt-BR');
+      topo.append(acao, data);
+      const titulo = document.createElement('h2'); titulo.textContent = registro.resumo;
+      const autor = document.createElement('p'); autor.textContent = `${registro.usuarioNome} · ${registro.usuarioTipo} · ${textoSeguro(registro.usuarioEmail)}`;
+      const meta = document.createElement('small'); meta.textContent = `${registro.entidade} #${textoSeguro(registro.entidadeId)} · IP ${textoSeguro(registro.ip)}`;
+      card.append(topo, titulo, autor, meta);
+      const antes = detalhe('Dados anteriores', registro.dadosAntes); const depois = detalhe('Dados posteriores', registro.dadosDepois);
+      if (antes) card.append(antes); if (depois) card.append(depois);
+      return card;
+    }
+    async function carregar(acrescentar = false) {
+      estado.textContent = 'Carregando registros…';
+      const params = new URLSearchParams({ limite: '50' });
+      const acao = document.getElementById('acao').value; const entidade = document.getElementById('entidade').value;
+      if (acao) params.set('acao', acao); if (entidade) params.set('entidade', entidade); if (acrescentar && cursor) params.set('antesDe', cursor);
+      try {
+        const resposta = await fetch(`/api/auditoria?${params}`); const corpo = await resposta.json();
+        if (!resposta.ok) throw new Error(corpo.erro || 'Não foi possível consultar a auditoria.');
+        if (!acrescentar) lista.replaceChildren();
+        corpo.registros.forEach((registro) => lista.appendChild(render(registro)));
+        cursor = corpo.proximoCursor; mais.hidden = !cursor;
+        estado.textContent = lista.children.length ? `${lista.children.length} registro(s) exibido(s).` : 'Nenhuma alteração encontrada.';
+      } catch (erro) { estado.textContent = erro.message; window.productUI?.notify(erro.message, 'error'); }
+    }
+    document.getElementById('filtros').addEventListener('submit', (e) => { e.preventDefault(); cursor = null; carregar(false); });
+    document.getElementById('atualizar').addEventListener('click', () => { cursor = null; carregar(false); });
+    mais.addEventListener('click', () => carregar(true));
+    carregar();
+  </script>
+</body>
+</html>

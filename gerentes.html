@@ -1,0 +1,631 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#191d1e">
+  <meta name="description" content="Gestão de equipe, perfis e permissões do Auto+Assis.">
+  <title>Equipe e permissões — Auto+Assis</title>
+  <script src="auth.js"></script>
+  <link rel="stylesheet" href="product.css">
+  <script src="ui.js" defer></script>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <style>
+    * { box-sizing: border-box; }
+    body { display: flex; min-height: 100vh; }
+    aside { display: flex; flex-direction: column; }
+    aside nav { flex: 1; }
+
+    .team-summary {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .summary-ticket {
+      position: relative;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: center;
+      gap: 13px;
+      min-height: 92px;
+      padding: 16px 18px;
+      overflow: hidden;
+      border: 1px solid var(--ink);
+      border-left: 5px solid var(--orange);
+      background: var(--sheet);
+      box-shadow: 3px 3px 0 rgba(25,29,30,.12);
+    }
+    .summary-ticket::after {
+      content: attr(data-code);
+      position: absolute;
+      right: 9px;
+      top: 8px;
+      color: var(--steel);
+      font: 700 8px/1 Consolas, monospace;
+      letter-spacing: .08em;
+    }
+    .summary-ticket strong {
+      min-width: 48px;
+      color: var(--ink);
+      font: 800 38px/.9 "Bahnschrift Condensed", "Arial Narrow", sans-serif;
+    }
+    .summary-ticket span { color: var(--steel); font: 700 10px/1.45 Consolas, monospace; text-transform: uppercase; }
+
+    .team-layout {
+      display: grid;
+      grid-template-columns: minmax(330px, .78fr) minmax(500px, 1.35fr);
+      align-items: start;
+      gap: 18px;
+    }
+    .team-panel {
+      overflow: hidden;
+      border: 1px solid var(--ink);
+      border-top: 6px solid var(--ink);
+      background: var(--sheet);
+      box-shadow: 5px 5px 0 rgba(25,29,30,.12);
+    }
+    .panel-heading {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 19px 21px 16px;
+      border-bottom: 2px solid var(--ink);
+    }
+    .panel-heading h2 { margin: 0; }
+    .panel-heading p { margin: 6px 0 0; color: var(--steel); font-size: 12px; line-height: 1.5; }
+    .panel-code { flex: 0 0 auto; padding: 5px 7px; border: 1px solid var(--rule-strong); color: var(--orange-dark); font: 800 9px/1 Consolas, monospace; }
+
+    .team-form { display: grid; gap: 15px; padding: 20px 21px 22px; }
+    .field { display: grid; gap: 7px; }
+    .field-meta { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+    .field-hint { color: var(--steel); font: 700 9px/1 Consolas, monospace; text-transform: uppercase; }
+    .password-wrap { position: relative; }
+    .password-wrap input { width: 100%; padding-right: 78px !important; }
+    .show-password {
+      position: absolute;
+      right: 6px;
+      top: 6px;
+      min-height: 34px;
+      padding: 0 9px;
+      border: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      color: var(--orange-dark) !important;
+      font-size: 10px !important;
+    }
+    .password-rules {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px 10px;
+      margin: 0;
+      padding: 0;
+      color: var(--steel);
+      font: 700 9px/1.35 Consolas, monospace;
+      list-style: none;
+    }
+    .password-rules li::before { content: "□"; margin-right: 6px; }
+    .password-rules li.valid { color: var(--green); }
+    .password-rules li.valid::before { content: "■"; }
+    .role-preview {
+      padding: 12px 13px;
+      border: 1px solid var(--rule);
+      border-left: 4px solid var(--orange);
+      background: var(--sheet-2);
+      color: var(--graphite);
+      font-size: 11px;
+      line-height: 1.55;
+    }
+    .role-preview strong { color: var(--ink); }
+    .form-message {
+      display: none;
+      padding: 11px 12px;
+      border: 1px solid currentColor;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .form-message.visible { display: block; }
+    .form-message.success { background: color-mix(in srgb, var(--green) 9%, var(--sheet)); color: var(--green); }
+    .form-message.error { background: color-mix(in srgb, var(--red) 9%, var(--sheet)); color: var(--red); }
+    .form-actions { display: grid; grid-template-columns: 1fr auto; gap: 9px; }
+    .cancel-edit[hidden] { display: none !important; }
+
+    .permission-guide { margin: 0 21px 21px; border: 1px solid var(--rule); }
+    .permission-row { display: grid; grid-template-columns: 92px minmax(0,1fr); gap: 12px; padding: 11px 12px; border-bottom: 1px solid var(--rule); }
+    .permission-row:last-child { border-bottom: 0; }
+    .permission-row strong { color: var(--ink); font: 800 10px/1.4 Consolas, monospace; text-transform: uppercase; }
+    .permission-row span { color: var(--steel); font-size: 10px; line-height: 1.5; }
+
+    .list-toolbar {
+      display: grid;
+      grid-template-columns: minmax(0,1fr) auto;
+      align-items: end;
+      gap: 12px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--rule);
+      background: var(--sheet-2);
+    }
+    .search-team { display: grid; gap: 5px; }
+    .search-team input { min-height: 40px !important; }
+    .list-meta { display: flex; align-items: center; gap: 9px; padding-bottom: 2px; color: var(--steel); font: 700 9px/1.3 Consolas, monospace; text-transform: uppercase; }
+    .refresh-button { min-height: 38px !important; }
+    .team-list { display: grid; gap: 8px; padding: 14px; }
+    .member-card {
+      display: grid;
+      grid-template-columns: 46px minmax(0,1fr) auto;
+      align-items: center;
+      gap: 12px;
+      min-height: 78px;
+      padding: 12px 13px;
+      border: 1px solid var(--ink);
+      border-left: 5px solid var(--orange);
+      background: var(--sheet-2);
+    }
+    .member-card[data-role="mecanico"] { border-left-color: var(--blue); }
+    .member-avatar {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border: 1px solid var(--ink);
+      background: var(--orange);
+      color: #111;
+      font: 900 11px/1 Consolas, monospace;
+    }
+    .member-card[data-role="mecanico"] .member-avatar { background: color-mix(in srgb, var(--blue) 22%, var(--sheet)); color: var(--blue); }
+    .member-data { min-width: 0; }
+    .member-name { display: flex; align-items: center; gap: 7px; min-width: 0; }
+    .member-name strong { overflow: hidden; color: var(--ink); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+    .self-marker { padding: 3px 5px; border: 1px solid var(--green); color: var(--green); font: 800 8px/1 Consolas, monospace; text-transform: uppercase; }
+    .member-email { overflow: hidden; margin-top: 4px; color: var(--steel); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+    .member-role { margin-top: 5px; color: var(--graphite); font: 800 9px/1 Consolas, monospace; text-transform: uppercase; }
+    .member-actions { display: flex; gap: 6px; }
+    .member-actions button { min-height: 34px !important; padding: 0 9px !important; border: 1px solid var(--ink) !important; background: var(--sheet) !important; box-shadow: 2px 2px 0 rgba(25,29,30,.12) !important; color: var(--ink) !important; font-size: 9px !important; text-transform: uppercase; }
+    .member-actions .delete-member { border-color: var(--red) !important; color: var(--red) !important; }
+    .member-actions button:disabled { opacity: .45; }
+    .list-state { padding: 44px 20px; color: var(--steel); font-size: 12px; line-height: 1.6; text-align: center; }
+
+    .office-config { margin-top: 18px; }
+    .office-config-form { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 14px; padding: 20px 21px 22px; }
+    .office-config-form .field { grid-column: span 4; }
+    .office-config-form .field-wide { grid-column: span 8; }
+    .office-config-form .config-actions { display: flex; align-items: center; justify-content: space-between; gap: 14px; grid-column: 1 / -1; padding-top: 4px; }
+    .config-state { color: var(--steel); font: 700 9px/1.45 Consolas, monospace; text-transform: uppercase; }
+
+    .confirm-dialog {
+      width: min(470px, calc(100% - 28px));
+      padding: 0;
+      border: 2px solid var(--ink);
+      background: var(--sheet);
+      box-shadow: 8px 8px 0 rgba(25,29,30,.2);
+      color: var(--ink);
+    }
+    .confirm-dialog::backdrop { background: rgba(10,13,13,.72); }
+    .dialog-head { padding: 18px 20px 15px; border-bottom: 2px solid var(--ink); }
+    .dialog-head span { color: var(--red); font: 800 9px/1 Consolas, monospace; text-transform: uppercase; }
+    .dialog-head h2 { margin: 7px 0 0; }
+    .dialog-body { padding: 18px 20px; color: var(--steel); font-size: 12px; line-height: 1.6; }
+    .dialog-body strong { color: var(--ink); }
+    .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 0 20px 20px; }
+    .confirm-delete { border: 2px solid var(--ink) !important; background: var(--red) !important; box-shadow: 3px 3px 0 var(--ink) !important; color: #fff !important; }
+
+    @media (max-width: 1120px) { .team-layout { grid-template-columns: 1fr; } }
+    @media (max-width: 720px) {
+      .team-summary { grid-template-columns: 1fr; }
+      .list-toolbar { grid-template-columns: 1fr; }
+      .member-card { grid-template-columns: 42px minmax(0,1fr); }
+      .member-actions { grid-column: 2; flex-wrap: wrap; }
+      .password-rules { grid-template-columns: 1fr; }
+      .form-actions { grid-template-columns: 1fr; }
+      .permission-row { grid-template-columns: 1fr; gap: 4px; }
+      .office-config-form .field, .office-config-form .field-wide { grid-column: 1 / -1; }
+      .office-config-form .config-actions { align-items: stretch; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <aside>
+    <div class="logo"><span class="mark">A+</span><span>Auto+Assis</span></div>
+    <div class="workspace-label"><span class="workspace-dot"></span><span><small>AMBIENTE</small>Oficina principal</span></div>
+    <nav><a href="dashboard.html">Dashboard</a><a href="gerentes.html" class="active">Acessos</a></nav>
+    <div class="user profile-card"><div class="profile-avatar" id="avatarGerente">G</div><div><strong id="nomeGerente">Administrador</strong><small>Gerente</small></div></div>
+    <button class="logout" type="button" id="sairButton">Sair da conta</button>
+  </aside>
+
+  <main>
+    <section class="page-heading">
+      <div><span class="page-overline">EQUIPE / CONTROLE DE ACESSO</span><h1>Equipe e permissões</h1><p>Contas individuais, responsabilidades claras e acesso somente ao necessário para cada função.</p></div>
+      <div class="page-actions"><span class="live-indicator"><i></i>Permissões ativas</span></div>
+    </section>
+
+    <section class="team-summary" aria-label="Resumo da equipe">
+      <article class="summary-ticket" data-code="EQ-01"><strong id="totalEquipe">—</strong><span>Pessoas<br>na equipe</span></article>
+      <article class="summary-ticket" data-code="EQ-02"><strong id="totalGerentes">—</strong><span>Gerentes<br>com acesso total</span></article>
+      <article class="summary-ticket" data-code="EQ-03"><strong id="totalMecanicos">—</strong><span>Mecânicos<br>na operação</span></article>
+    </section>
+
+    <section class="team-layout" aria-label="Gestão da equipe">
+      <article class="team-panel">
+        <header class="panel-heading"><div><h2 id="formTitle">Novo membro</h2><p id="formLead">Crie uma credencial individual e escolha o nível de acesso.</p></div><span class="panel-code">ACL/EDIT</span></header>
+        <form class="team-form" id="equipeForm" novalidate>
+          <input id="membroId" type="hidden">
+          <div class="field"><div class="field-meta"><label for="nome">Nome completo</label><span class="field-hint">2–100 caracteres</span></div><input id="nome" name="nome" type="text" minlength="2" maxlength="100" autocomplete="name" placeholder="Ex.: Mariana Oliveira" required></div>
+          <div class="field"><label for="email">E-mail profissional</label><input id="email" name="email" type="email" maxlength="150" autocomplete="email" placeholder="mariana@oficina.com.br" required></div>
+          <div class="field"><label for="tipo">Perfil de acesso</label><select id="tipo" name="tipo" required><option value="mecanico">Mecânico — operação</option><option value="gerente">Gerente — acesso total</option></select></div>
+          <div class="role-preview" id="rolePreview" aria-live="polite"></div>
+          <div class="field">
+            <div class="field-meta"><label for="senha" id="senhaLabel">Senha temporária</label><span class="field-hint" id="senhaHint">obrigatória no cadastro</span></div>
+            <div class="password-wrap"><input id="senha" name="senha" type="password" minlength="10" maxlength="128" autocomplete="new-password" placeholder="Mínimo de 10 caracteres" required><button class="show-password" type="button" id="mostrarSenha" aria-controls="senha" aria-pressed="false">Mostrar</button></div>
+            <ul class="password-rules" aria-label="Requisitos da senha"><li data-rule="length">10 ou mais caracteres</li><li data-rule="upper">Letra maiúscula</li><li data-rule="lower">Letra minúscula</li><li data-rule="number">Número</li><li data-rule="special">Caractere especial</li><li data-rule="spaces">Sem espaços</li></ul>
+          </div>
+          <div class="form-message" id="formMessage" role="alert" aria-live="polite"></div>
+          <div class="form-actions"><button class="submit-manager" id="salvarMembro" type="submit">Cadastrar membro</button><button class="button-secondary cancel-edit" id="cancelarEdicao" type="button" hidden>Cancelar edição</button></div>
+        </form>
+        <div class="permission-guide" aria-label="Resumo das permissões">
+          <div class="permission-row"><strong>Gerente</strong><span>Equipe, configurações, peças, relatórios, valores e toda a operação.</span></div>
+          <div class="permission-row"><strong>Mecânico</strong><span>Consulta de estoque, movimentações e execução dos serviços. Sem faturamento, orçamentos ou administração.</span></div>
+        </div>
+      </article>
+
+      <article class="team-panel">
+        <header class="panel-heading"><div><h2>Pessoas autorizadas</h2><p>Edite dados, ajuste responsabilidades ou remova acessos que não são mais necessários.</p></div><span class="panel-code">ACL/LIST</span></header>
+        <div class="list-toolbar"><div class="search-team"><label for="buscarMembro">Buscar na equipe</label><input id="buscarMembro" type="search" placeholder="Nome, e-mail ou perfil" autocomplete="off"></div><div><div class="list-meta" id="listDescription">Carregando equipe…</div><button class="refresh-button button-secondary" type="button" id="atualizarLista">Atualizar lista</button></div></div>
+        <div class="team-list" id="listaEquipe" aria-live="polite"><div class="list-state">Consultando acessos autorizados…</div></div>
+      </article>
+    </section>
+
+    <section class="team-panel office-config" aria-labelledby="oficinaConfigTitle">
+      <header class="panel-heading"><div><h2 id="oficinaConfigTitle">Identidade da oficina</h2><p>Esses dados aparecem na ordem de serviço, no termo de autorização e nos documentos entregues ao cliente.</p></div><span class="panel-code">CFG/DOC</span></header>
+      <form class="office-config-form" id="oficinaForm" novalidate>
+        <div class="field"><label for="oficinaNome">Nome da oficina</label><input id="oficinaNome" name="nome" type="text" minlength="2" maxlength="150" autocomplete="organization" required></div>
+        <div class="field"><label for="oficinaDocumento">CNPJ / documento</label><input id="oficinaDocumento" name="documento" type="text" minlength="5" maxlength="30" required></div>
+        <div class="field"><label for="oficinaTelefone">Telefone</label><input id="oficinaTelefone" name="telefone" type="tel" minlength="8" maxlength="30" autocomplete="tel" required></div>
+        <div class="field"><label for="oficinaEmail">E-mail</label><input id="oficinaEmail" name="email" type="email" maxlength="150" autocomplete="email" required></div>
+        <div class="field field-wide"><label for="oficinaEndereco">Endereço completo</label><input id="oficinaEndereco" name="endereco" type="text" minlength="5" maxlength="250" autocomplete="street-address" required></div>
+        <div class="form-message" id="oficinaMessage" role="alert" aria-live="polite"></div>
+        <div class="config-actions"><span class="config-state" id="oficinaState">Carregando configuração…</span><button class="submit-manager" id="salvarOficina" type="submit">Salvar dados da oficina</button></div>
+      </form>
+    </section>
+  </main>
+
+  <dialog class="confirm-dialog" id="deleteDialog" aria-labelledby="deleteTitle">
+    <div class="dialog-head"><span>AÇÃO IRREVERSÍVEL</span><h2 id="deleteTitle">Remover acesso?</h2></div>
+    <div class="dialog-body">A conta de <strong id="deleteName">—</strong> perderá imediatamente o acesso ao sistema. Os registros operacionais permanecem preservados.</div>
+    <div class="dialog-actions"><button class="button-secondary" type="button" id="cancelarExclusao">Cancelar</button><button class="confirm-delete" type="button" id="confirmarExclusao">Remover acesso</button></div>
+  </dialog>
+
+  <script>
+    (() => {
+      const usuario = window.apiAuth.requireAuth('gerente');
+      if (!usuario) return;
+
+      const form = document.getElementById('equipeForm');
+      const idInput = document.getElementById('membroId');
+      const nomeInput = document.getElementById('nome');
+      const emailInput = document.getElementById('email');
+      const tipoInput = document.getElementById('tipo');
+      const senhaInput = document.getElementById('senha');
+      const submitButton = document.getElementById('salvarMembro');
+      const cancelEditButton = document.getElementById('cancelarEdicao');
+      const message = document.getElementById('formMessage');
+      const list = document.getElementById('listaEquipe');
+      const search = document.getElementById('buscarMembro');
+      const dialog = document.getElementById('deleteDialog');
+      const oficinaForm = document.getElementById('oficinaForm');
+      const oficinaMessage = document.getElementById('oficinaMessage');
+      let equipe = [];
+      let membroParaExcluir = null;
+
+      document.getElementById('nomeGerente').textContent = usuario.nome || 'Administrador';
+      document.getElementById('avatarGerente').textContent = iniciais(usuario.nome || 'G');
+      document.getElementById('sairButton').addEventListener('click', () => window.apiAuth.logout());
+
+      function iniciais(nome) {
+        return String(nome || 'AA').trim().split(/\s+/).slice(0, 2).map((parte) => parte.charAt(0).toUpperCase()).join('') || 'AA';
+      }
+
+      function senhaValida(senha) {
+        return senha.length >= 10 && senha.length <= 128 && !/\s/.test(senha) && /[A-Z]/.test(senha) && /[a-z]/.test(senha) && /\d/.test(senha) && /[^A-Za-z0-9]/.test(senha);
+      }
+
+      function atualizarRegrasSenha() {
+        const senha = senhaInput.value;
+        const regras = { length: senha.length >= 10, upper: /[A-Z]/.test(senha), lower: /[a-z]/.test(senha), number: /\d/.test(senha), special: /[^A-Za-z0-9]/.test(senha), spaces: !/\s/.test(senha) };
+        Object.entries(regras).forEach(([regra, valida]) => document.querySelector(`[data-rule="${regra}"]`)?.classList.toggle('valid', valida));
+      }
+
+      function mostrarMensagem(texto, tipo) {
+        message.textContent = texto;
+        message.className = `form-message visible ${tipo}`;
+      }
+
+      function limparMensagem() {
+        message.textContent = '';
+        message.className = 'form-message';
+      }
+
+      function atualizarPreviewPerfil() {
+        const gerente = tipoInput.value === 'gerente';
+        const strong = document.createElement('strong');
+        strong.textContent = gerente ? 'Acesso total. ' : 'Acesso operacional. ';
+        const texto = document.createTextNode(gerente
+          ? 'Pode administrar equipe, valores, relatórios, peças e serviços.'
+          : 'Pode consultar estoque, movimentar materiais e executar serviços; não acessa dados financeiros.');
+        document.getElementById('rolePreview').replaceChildren(strong, texto);
+      }
+
+      function resetarFormulario(focar = false) {
+        form.reset();
+        idInput.value = '';
+        tipoInput.disabled = false;
+        senhaInput.required = true;
+        document.getElementById('formTitle').textContent = 'Novo membro';
+        document.getElementById('formLead').textContent = 'Crie uma credencial individual e escolha o nível de acesso.';
+        document.getElementById('senhaLabel').textContent = 'Senha temporária';
+        document.getElementById('senhaHint').textContent = 'obrigatória no cadastro';
+        submitButton.textContent = 'Cadastrar membro';
+        submitButton.setAttribute('aria-label', 'Cadastrar membro');
+        cancelEditButton.hidden = true;
+        limparMensagem();
+        atualizarRegrasSenha();
+        atualizarPreviewPerfil();
+        if (focar) nomeInput.focus();
+      }
+
+      function iniciarEdicao(membro) {
+        idInput.value = String(membro.id);
+        nomeInput.value = membro.nome || '';
+        emailInput.value = membro.email || '';
+        tipoInput.value = membro.tipo === 'gerente' ? 'gerente' : 'mecanico';
+        tipoInput.disabled = Number(membro.id) === Number(usuario.id);
+        senhaInput.value = '';
+        senhaInput.required = false;
+        document.getElementById('formTitle').textContent = 'Editar membro';
+        document.getElementById('formLead').textContent = 'Atualize os dados ou altere a responsabilidade desta conta.';
+        document.getElementById('senhaLabel').textContent = 'Nova senha (opcional)';
+        document.getElementById('senhaHint').textContent = 'deixe em branco para manter';
+        submitButton.textContent = 'Salvar alterações';
+        submitButton.setAttribute('aria-label', 'Salvar alterações');
+        cancelEditButton.hidden = false;
+        limparMensagem();
+        atualizarRegrasSenha();
+        atualizarPreviewPerfil();
+        nomeInput.focus();
+        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      function criarBotao(texto, classe, acao, desabilitado = false) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = classe;
+        button.textContent = texto;
+        button.disabled = desabilitado;
+        button.addEventListener('click', acao);
+        return button;
+      }
+
+      function criarCard(membro) {
+        const card = document.createElement('article');
+        card.className = 'member-card';
+        card.dataset.role = membro.tipo;
+
+        const avatar = document.createElement('span');
+        avatar.className = 'member-avatar';
+        avatar.textContent = iniciais(membro.nome);
+        avatar.setAttribute('aria-hidden', 'true');
+
+        const data = document.createElement('div');
+        data.className = 'member-data';
+        const nameRow = document.createElement('div');
+        nameRow.className = 'member-name';
+        const name = document.createElement('strong');
+        name.textContent = membro.nome || 'Nome não informado';
+        nameRow.appendChild(name);
+        const self = Number(membro.id) === Number(usuario.id);
+        if (self) {
+          const marker = document.createElement('span');
+          marker.className = 'self-marker';
+          marker.textContent = 'Sua conta';
+          nameRow.appendChild(marker);
+        }
+        const email = document.createElement('div');
+        email.className = 'member-email';
+        email.textContent = membro.email || 'E-mail não informado';
+        const role = document.createElement('div');
+        role.className = 'member-role';
+        role.textContent = membro.tipo === 'gerente' ? 'Gerente · acesso total' : 'Mecânico · operação';
+        data.append(nameRow, email, role);
+
+        const actions = document.createElement('div');
+        actions.className = 'member-actions';
+        actions.append(
+          criarBotao('Editar', 'edit-member', () => iniciarEdicao(membro)),
+          criarBotao('Excluir', 'delete-member', () => abrirExclusao(membro), self)
+        );
+        card.append(avatar, data, actions);
+        return card;
+      }
+
+      function renderizarEquipe() {
+        const termo = search.value.trim().toLocaleLowerCase('pt-BR');
+        const filtrados = equipe.filter((membro) => !termo || [membro.nome, membro.email, membro.tipo].join(' ').toLocaleLowerCase('pt-BR').includes(termo));
+        list.replaceChildren();
+        if (!filtrados.length) {
+          const state = document.createElement('div');
+          state.className = 'list-state';
+          state.textContent = equipe.length ? 'Nenhum membro corresponde à busca.' : 'Nenhuma conta de equipe cadastrada.';
+          list.appendChild(state);
+        } else {
+          filtrados.forEach((membro) => list.appendChild(criarCard(membro)));
+        }
+        document.getElementById('listDescription').textContent = `${filtrados.length} de ${equipe.length} conta(s)`;
+        document.getElementById('totalEquipe').textContent = equipe.length;
+        document.getElementById('totalGerentes').textContent = equipe.filter((item) => item.tipo === 'gerente').length;
+        document.getElementById('totalMecanicos').textContent = equipe.filter((item) => item.tipo === 'mecanico').length;
+      }
+
+      async function lerResposta(resposta, fallback) {
+        const dados = await resposta.json().catch(() => ({}));
+        if (!resposta.ok) throw new Error(dados.erro || fallback);
+        return dados;
+      }
+
+      async function carregarEquipe() {
+        document.getElementById('listDescription').textContent = 'Sincronizando…';
+        try {
+          const resposta = await fetch('/api/equipe');
+          const dados = await lerResposta(resposta, 'Não foi possível consultar a equipe.');
+          const lista = Array.isArray(dados) ? dados : dados.equipe;
+          if (!Array.isArray(lista)) throw new Error('O servidor retornou uma lista inválida.');
+          equipe = lista.filter((membro) => ['gerente', 'mecanico'].includes(membro.tipo));
+          renderizarEquipe();
+        } catch (erro) {
+          equipe = [];
+          renderizarEquipe();
+          const state = document.createElement('div');
+          state.className = 'list-state';
+          state.textContent = erro instanceof TypeError ? 'Servidor indisponível. Confirme se o Node.js está em execução.' : erro.message;
+          list.replaceChildren(state);
+          document.getElementById('listDescription').textContent = 'Falha na sincronização';
+        }
+      }
+
+      function mostrarMensagemOficina(texto, tipo) {
+        oficinaMessage.textContent = texto;
+        oficinaMessage.className = `form-message visible ${tipo}`;
+      }
+
+      async function carregarConfiguracaoOficina() {
+        const state = document.getElementById('oficinaState');
+        try {
+          const resposta = await fetch('/api/configuracao-oficina');
+          const dados = await lerResposta(resposta, 'Não foi possível carregar os dados da oficina.');
+          document.getElementById('oficinaNome').value = dados.nome || '';
+          document.getElementById('oficinaDocumento').value = dados.documento || dados.cnpj || '';
+          document.getElementById('oficinaTelefone').value = dados.telefone || '';
+          document.getElementById('oficinaEmail').value = dados.email || '';
+          document.getElementById('oficinaEndereco').value = dados.endereco || '';
+          state.textContent = dados.completa ? 'Cadastro documental completo' : 'Complete os campos antes de emitir contratos';
+        } catch (erro) {
+          state.textContent = 'Configuração indisponível';
+          mostrarMensagemOficina(erro.message, 'error');
+        }
+      }
+
+      function abrirExclusao(membro) {
+        membroParaExcluir = membro;
+        document.getElementById('deleteName').textContent = membro.nome || membro.email;
+        dialog.showModal();
+      }
+
+      async function excluirMembro() {
+        if (!membroParaExcluir) return;
+        const button = document.getElementById('confirmarExclusao');
+        button.disabled = true;
+        button.textContent = 'Removendo…';
+        try {
+          const resposta = await fetch(`/api/equipe/${Number(membroParaExcluir.id)}`, { method: 'DELETE' });
+          if (resposta.status !== 204) await lerResposta(resposta, 'Não foi possível remover o acesso.');
+          dialog.close();
+          window.productUI?.notify?.('Acesso removido com sucesso.', 'success');
+          membroParaExcluir = null;
+          await carregarEquipe();
+        } catch (erro) {
+          window.productUI?.notify?.(erro.message, 'error');
+        } finally {
+          button.disabled = false;
+          button.textContent = 'Remover acesso';
+        }
+      }
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        limparMensagem();
+        const id = Number(idInput.value) || null;
+        const nome = nomeInput.value.trim();
+        const email = emailInput.value.trim().toLowerCase();
+        const tipo = tipoInput.value;
+        const senha = senhaInput.value;
+        if (nome.length < 2) return mostrarMensagem('Informe um nome válido.', 'error');
+        if (!emailInput.validity.valid) return mostrarMensagem('Informe um e-mail válido.', 'error');
+        if (!['gerente', 'mecanico'].includes(tipo)) return mostrarMensagem('Escolha um perfil válido.', 'error');
+        if ((!id || senha) && !senhaValida(senha)) return mostrarMensagem('A senha ainda não atende a todos os requisitos.', 'error');
+
+        submitButton.disabled = true;
+        submitButton.textContent = id ? 'Salvando…' : 'Cadastrando…';
+        try {
+          const corpo = { nome, email, tipo };
+          if (senha) corpo.senha = senha;
+          const resposta = await fetch(id ? `/api/equipe/${id}` : '/api/equipe', {
+            method: id ? 'PUT' : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(corpo)
+          });
+          const dados = await lerResposta(resposta, id ? 'Não foi possível atualizar a conta.' : 'Não foi possível cadastrar a conta.');
+          if (id === Number(usuario.id)) {
+            window.apiAuth.setSession(dados.token || window.apiAuth.getToken(), dados.membro || { ...usuario, nome, email, tipo });
+            document.getElementById('nomeGerente').textContent = nome;
+            document.getElementById('avatarGerente').textContent = iniciais(nome);
+          }
+          resetarFormulario();
+          mostrarMensagem(dados.mensagem || (id ? 'Conta atualizada com sucesso.' : 'Membro cadastrado com sucesso.'), 'success');
+          await carregarEquipe();
+        } catch (erro) {
+          mostrarMensagem(erro instanceof TypeError ? 'Não foi possível conectar ao servidor.' : erro.message, 'error');
+        } finally {
+          submitButton.disabled = false;
+          submitButton.textContent = idInput.value ? 'Salvar alterações' : 'Cadastrar membro';
+          submitButton.setAttribute('aria-label', submitButton.textContent);
+        }
+      });
+
+      oficinaForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        oficinaMessage.textContent = '';
+        oficinaMessage.className = 'form-message';
+        if (!oficinaForm.reportValidity()) return;
+        const button = document.getElementById('salvarOficina');
+        const corpo = Object.fromEntries(new FormData(oficinaForm).entries());
+        button.disabled = true;
+        button.textContent = 'Salvando…';
+        try {
+          const resposta = await fetch('/api/configuracao-oficina', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(corpo)
+          });
+          const dados = await lerResposta(resposta, 'Não foi possível salvar os dados da oficina.');
+          mostrarMensagemOficina(dados.mensagem || 'Dados da oficina atualizados.', 'success');
+          document.getElementById('oficinaState').textContent = 'Cadastro documental completo';
+        } catch (erro) {
+          mostrarMensagemOficina(erro.message, 'error');
+        } finally {
+          button.disabled = false;
+          button.textContent = 'Salvar dados da oficina';
+        }
+      });
+
+      tipoInput.addEventListener('change', atualizarPreviewPerfil);
+      senhaInput.addEventListener('input', atualizarRegrasSenha);
+      search.addEventListener('input', renderizarEquipe);
+      cancelEditButton.addEventListener('click', () => resetarFormulario(true));
+      document.getElementById('atualizarLista').addEventListener('click', carregarEquipe);
+      document.getElementById('mostrarSenha').addEventListener('click', (event) => {
+        const mostrar = senhaInput.type === 'password';
+        senhaInput.type = mostrar ? 'text' : 'password';
+        event.currentTarget.textContent = mostrar ? 'Ocultar' : 'Mostrar';
+        event.currentTarget.setAttribute('aria-pressed', String(mostrar));
+      });
+      document.getElementById('cancelarExclusao').addEventListener('click', () => { membroParaExcluir = null; dialog.close(); });
+      document.getElementById('confirmarExclusao').addEventListener('click', excluirMembro);
+      dialog.addEventListener('cancel', () => { membroParaExcluir = null; });
+
+      resetarFormulario();
+      carregarEquipe();
+      carregarConfiguracaoOficina();
+    })();
+  </script>
+</body>
+</html>

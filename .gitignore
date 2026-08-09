@@ -3,3 +3,14 @@ node_modules/
 .env.*
 !.env.example
 *.log
+
+# Artefatos e backups podem conter dados reais e nunca entram no repositório.
+*.zip
+*.sha256.txt
+backups/
+*.sql.bak
+
+# Utilitários locais temporários de validação visual/schema.
+visual-preview-server.cjs
+inspect-active-schema.cjs
+smoke-active.cjs

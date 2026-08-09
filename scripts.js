@@ -2,55 +2,96 @@
 // 1. BASE DE DADOS (Sincronização com MySQL)
 // -----------------------------------------------------------
 
-// Auxiliares para Cache Local (Apenas para não quebrar funções legadas)
-const getEstoque = () => JSON.parse(localStorage.getItem('estoque') || '{}');
-const setEstoque = (dados) => localStorage.setItem('estoque', JSON.stringify(dados));
-const getSolicitacoes = () => JSON.parse(localStorage.getItem('solicitacoes') || '{}');
-const setSolicitacoes = (dados) => localStorage.setItem('solicitacoes', JSON.stringify(dados));
+// Dados vindos da API permanecem apenas na memória desta página. Respostas de
+// solicitações contêm PII e valores financeiros; o estoque também pode conter
+// preços. Nenhuma dessas respostas deve sobreviver ao fechamento da aba.
+let estoqueEmMemoria = Object.create(null);
+
+function removerCachesPersistentesLegados() {
+    try {
+        [
+            'estoque',
+            'solicitacoes',
+            'autoassis:cache:estoque',
+            'autoassis:cache:solicitacoes'
+        ].forEach((chave) => localStorage.removeItem(chave));
+    } catch (erro) {
+        console.warn('Não foi possível remover caches locais legados.');
+    }
+}
+
+removerCachesPersistentesLegados();
+
+function normalizarId(valor) {
+    const id = Number(valor);
+    return Number.isSafeInteger(id) && id > 0 ? id : null;
+}
+
+function normalizarNumero(valor, padrao = 0) {
+    const numero = Number(valor);
+    return Number.isFinite(numero) ? numero : padrao;
+}
+
+function normalizarTexto(valor, padrao = '', limite = 160) {
+    const texto = typeof valor === 'string' ? valor.trim() : '';
+    return (texto || padrao).slice(0, limite);
+}
+
+function criarNo(tag, classe, texto) {
+    const elemento = document.createElement(tag);
+    if (classe) elemento.className = classe;
+    if (texto !== undefined) elemento.textContent = texto;
+    return elemento;
+}
+
+function podeGerenciarEstoque() {
+    return Boolean(window.apiAuth?.can?.('inventory.write'));
+}
+
+const getEstoque = () => estoqueEmMemoria;
+const setEstoque = (dados) => {
+    estoqueEmMemoria = dados && typeof dados === 'object' && !Array.isArray(dados)
+        ? dados
+        : Object.create(null);
+};
 
 // -- SINCRONIZAR ESTOQUE --
 async function sincronizarEstoqueComBanco() {
     try {
-        const resposta = await fetch('http://localhost:3000/api/pecas');
+        const resposta = await fetch('/api/pecas');
+        if (!resposta.ok) throw new Error('Não foi possível carregar o estoque');
         const pecas = await resposta.json();
-        const estoqueAtualizado = {};
+        if (!Array.isArray(pecas)) throw new Error('Resposta de estoque inválida');
+        const estoqueAtualizado = Object.create(null);
         pecas.forEach(p => {
-            estoqueAtualizado[p.id] = p;
+            const id = normalizarId(p?.id);
+            if (id) estoqueAtualizado[id] = p;
         });
         setEstoque(estoqueAtualizado);
         if (typeof aplicarFiltrosEstoque === 'function') aplicarFiltrosEstoque();
     } catch (e) { console.error('Erro ao sincronizar estoque'); }
 }
 
-// -- SINCRONIZAR SOLICITAÇÕES --
-async function sincronizarSolicitacoesComBanco() {
-    try {
-        const resposta = await fetch('http://localhost:3000/api/solicitacoes');
-        const dados = await resposta.json();
-        const atualizadas = {};
-        dados.forEach(sol => {
-            atualizadas[sol.id] = sol;
-        });
-        setSolicitacoes(atualizadas);
-
-        // Dispara atualizações de UI dependendo da página
-        if (document.title.includes("Serviços")) {
-            if (typeof carregarServicos === 'function') carregarServicos();
-        } 
-        if (document.title.includes("Minhas Solicitações")) {
-            if (typeof carregarDadosCliente === 'function') carregarDadosCliente();
-        }
-    } catch (e) { console.error('Erro ao sincronizar solicitações'); }
-}
-
 // -- DELETAR PEÇA --
 async function deletarPeca(id) {
+    if (!podeGerenciarEstoque()) {
+        window.productUI?.notify?.('Seu perfil possui acesso somente à consulta do estoque.', 'warning');
+        return;
+    }
+    const pecaId = normalizarId(id);
+    if (!pecaId) {
+        (typeof mostrarToast === "function" ? mostrarToast : alert)("Identificador de peça inválido.");
+        return;
+    }
     if (!confirm("Deseja realmente excluir esta peça?")) return;
     try {
-        const res = await fetch(`http://localhost:3000/api/pecas/${id}`, { method: 'DELETE' });
+        const res = await fetch(`/api/pecas/${pecaId}`, { method: 'DELETE' });
         if (res.ok) {
             (typeof mostrarToast === "function" ? mostrarToast : alert)("Peça excluída!");
             sincronizarEstoqueComBanco();
+        } else {
+            const dados = await res.json().catch(() => ({}));
+            window.productUI?.notify?.(dados.erro || 'Não foi possível excluir a peça.', 'error');
         }
     } catch (e) { (typeof mostrarToast === "function" ? mostrarToast : alert)("Erro ao deletar"); }
 }
@@ -67,39 +108,80 @@ function aplicarFiltrosEstoque() {
     const busca = document.getElementById('searchInput')?.value.toLowerCase() || '';
     const cat = document.getElementById('categoriaFilter')?.value || 'todas';
 
-    let pecas = Object.values(estoque);
+    let pecas = Object.values(estoque).filter(p => p && typeof p === 'object');
 
-    if (busca) pecas = pecas.filter(p => p.nome.toLowerCase().includes(busca) || String(p.id).includes(busca));
-    if (cat !== 'todas') pecas = pecas.filter(p => p.categoria === cat);
+    if (busca) pecas = pecas.filter(p => normalizarTexto(p.nome).toLowerCase().includes(busca) || String(normalizarId(p.id) || '').includes(busca));
+    if (cat !== 'todas') pecas = pecas.filter(p => normalizarTexto(p.categoria) === cat);
 
-    container.innerHTML = '';
+    container.replaceChildren();
     
     if (pecas.length === 0) {
-        container.innerHTML = '<p style="padding:20px; color:#888;">Nenhuma peça encontrada.</p>';
+        const vazio = criarNo('p', '', 'Nenhuma peça encontrada.');
+        vazio.style.padding = '20px';
+        vazio.style.color = '#888';
+        container.appendChild(vazio);
         return;
     }
 
     pecas.forEach(p => {
-        const isLow = p.quantidade <= p.min;
-        const card = `
-            <div class="card" style="border-left: 5px solid ${isLow ? 'var(--danger)' : 'var(--success)'}">
-                <h3>${p.nome} <span style="color:var(--accent)">#${p.id}</span></h3>
-                <p>Categoria: ${p.categoria}</p>
-                <p>Qtd: <b style="color:${isLow ? 'var(--danger)' : 'var(--success)'}">${p.quantidade}</b> (Min: ${p.min})</p>
-                <p>Preço: R$ ${parseFloat(p.preco).toFixed(2)}</p>
-                <div style="display:flex; gap:5px; margin-top:10px;">
-                    <button onclick="prepararEdicao(${p.id})" style="flex:1; background:rgba(255,255,255,0.1); border-radius:5px; padding:5px; cursor:pointer; color:white; border:none;">Editar</button>
-                    <button onclick="deletarPeca(${p.id})" style="flex:1; background:rgba(255,77,77,0.2); color:var(--danger); border-radius:5px; padding:5px; cursor:pointer; border:none;">Excluir</button>
-                </div>
-            </div>
-        `;
-        container.insertAdjacentHTML('beforeend', card);
+        const id = normalizarId(p.id);
+        const quantidade = Math.max(0, normalizarNumero(p.quantidade));
+        const minimo = Math.max(0, normalizarNumero(p.min));
+        const precoDisponivel = p.preco !== undefined && p.preco !== null && podeGerenciarEstoque();
+        const preco = Math.max(0, normalizarNumero(p.preco));
+        const isLow = quantidade <= minimo;
+        const card = criarNo('div', 'card');
+        card.style.borderLeft = `5px solid ${isLow ? 'var(--danger)' : 'var(--success)'}`;
+
+        const titulo = criarNo('h3', '', `${normalizarTexto(p.nome, 'Peça sem nome')} `);
+        const codigo = criarNo('span', '', `#${id || '—'}`);
+        codigo.style.color = 'var(--accent)';
+        titulo.appendChild(codigo);
+
+        const categoria = criarNo('p', '', `Categoria: ${normalizarTexto(p.categoria, 'Sem categoria')}`);
+        const estoque = criarNo('p', '', 'Qtd: ');
+        const quantidadeNo = criarNo('b', '', String(quantidade));
+        quantidadeNo.style.color = isLow ? 'var(--danger)' : 'var(--success)';
+        estoque.append(quantidadeNo, document.createTextNode(` (Min: ${minimo})`));
+        const valor = precoDisponivel
+            ? criarNo('p', '', `Preço: ${preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`)
+            : null;
+
+        const conteudo = [titulo, categoria, estoque];
+        if (valor) conteudo.push(valor);
+
+        if (podeGerenciarEstoque()) {
+            const acoes = criarNo('div', 'inventory-card-actions');
+            const editar = criarNo('button', '', 'Editar');
+            editar.type = 'button';
+            const excluir = criarNo('button', 'danger-action', 'Excluir');
+            excluir.type = 'button';
+
+            if (id) {
+                editar.addEventListener('click', () => prepararEdicao(id));
+                excluir.addEventListener('click', () => deletarPeca(id));
+            } else {
+                editar.disabled = true;
+                excluir.disabled = true;
+            }
+            acoes.append(editar, excluir);
+            conteudo.push(acoes);
+        }
+
+        card.append(...conteudo);
+        container.appendChild(card);
     });
 }
 
 // Função para levar o ID para a página de edição
 window.prepararEdicao = function(id) {
-    localStorage.setItem('pecaEditandoId', id);
+    if (!podeGerenciarEstoque()) {
+        window.productUI?.notify?.('Seu perfil não pode editar peças.', 'warning');
+        return;
+    }
+    const pecaId = normalizarId(id);
+    if (!pecaId) return;
+    localStorage.setItem('pecaEditandoId', String(pecaId));
     window.location.href = 'criarpeca.html';
 };
 
@@ -109,7 +191,6 @@ window.prepararEdicao = function(id) {
 
 window.onload = function() {
     sincronizarEstoqueComBanco();
-    sincronizarSolicitacoesComBanco();
     
     // Configura busca em tempo real
     document.getElementById('searchInput')?.addEventListener('input', aplicarFiltrosEstoque);

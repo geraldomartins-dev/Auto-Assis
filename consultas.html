@@ -3,197 +3,387 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#080b10">
+  <meta name="description" content="Consultas instantâneas sobre estoque, serviços e faturamento da oficina Auto+Assis.">
+  <title>Consultas rápidas — Auto+Assis</title>
   <script src="auth.js"></script>
-  <title>Consultas Rápidas — Auto+Assis</title>
+  <link rel="stylesheet" href="product.css">
+  <script src="ui.js" defer></script>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
   <style>
-    :root{
-      --bg:#0a0a0a;
-      --panel:#0f0f0f;
-      --accent:#ff6a00;
-      --white:#ffffff;
-      --muted:#cccccc;
-      --success:#22c55e;
-      --danger:#ff4d4d;
-      --info:#1e88e5;
-      --radius:12px;
-      --shadow:0 8px 30px rgba(0,0,0,0.6);
-      font-family:Inter,system-ui,sans-serif;
+    .consultation-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.55fr) minmax(320px, .72fr);
+      align-items: start;
+      gap: 16px;
+    }
+    .question-panel { padding: 0; overflow: hidden; }
+    .question-panel > .surface-header {
+      align-items: center;
+      padding: 21px 22px;
+      border-bottom: 1px solid var(--line);
+    }
+    .question-count {
+      display: inline-flex;
+      align-items: center;
+      min-height: 32px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .025);
+      color: #8491a4;
+      font-size: 10px;
+      font-weight: 730;
+    }
+    .consultation-role-note {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin: 16px 16px 0;
+      padding: 12px 14px;
+      border: 1px solid color-mix(in srgb, var(--info) 30%, var(--line));
+      background: color-mix(in srgb, var(--info) 7%, var(--panel));
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.55;
+    }
+    .consultation-role-note::before {
+      content: "i";
+      display: grid;
+      place-items: center;
+      width: 20px;
+      height: 20px;
+      flex: 0 0 20px;
+      border: 1px solid color-mix(in srgb, var(--info) 45%, transparent);
+      color: var(--info);
+      font-size: 10px;
+      font-weight: 850;
+    }
+    .consultation-role-note strong { color: var(--text); }
+    .question-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px !important;
+      padding: 16px;
+    }
+    .question-btn {
+      position: relative;
+      display: grid;
+      grid-template-columns: 38px minmax(0, 1fr);
+      align-items: start;
+      gap: 12px;
+      min-height: 146px !important;
+      padding: 18px !important;
+      overflow: hidden;
+      border-left: 1px solid var(--line) !important;
+      box-shadow: none !important;
+      cursor: pointer;
+    }
+    .question-btn::after {
+      content: "→";
+      position: absolute;
+      right: 16px;
+      bottom: 14px;
+      color: #576478;
+      font-size: 15px;
+      transition: color .18s ease, transform .18s ease;
+    }
+    .question-btn:hover::after {
+      color: var(--accent-2);
+      transform: translateX(3px);
+    }
+    .question-icon {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      border: 1px solid rgba(255, 122, 26, .14);
+      border-radius: 11px;
+      background: rgba(255, 122, 26, .07);
+      color: var(--accent-2);
+    }
+    .question-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .question-copy { min-width: 0; padding-right: 9px; }
+    .question-type {
+      display: block;
+      margin-bottom: 7px;
+      color: #68768a;
+      font-size: 8px;
+      font-weight: 850;
+      letter-spacing: .15em;
+    }
+    .question-btn strong {
+      display: block;
+      color: #e3e8ef;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .question-btn small {
+      display: block;
+      margin-top: 7px;
+      color: #768397;
+      font-size: 10px;
+      line-height: 1.45;
     }
 
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{background:var(--bg);color:var(--white)}
+    .consultation-answer.answer-box {
+      position: sticky;
+      top: 24px;
+      min-height: 330px;
+      padding: 0 !important;
+      overflow: hidden;
+      border-radius: 20px !important;
+    }
+    .answer-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 11px;
+      padding: 21px 22px;
+      border-bottom: 1px solid var(--line);
+    }
+    .answer-signal {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      flex: 0 0 34px;
+      border: 1px solid rgba(97, 169, 255, .15);
+      border-radius: 10px;
+      background: rgba(97, 169, 255, .07);
+      color: var(--info);
+      font-size: 14px;
+      font-weight: 850;
+    }
+    .answer-header h2 {
+      margin: 3px 0 0;
+      color: #f1f4f8 !important;
+      font-size: 15px !important;
+      line-height: 1.35;
+    }
+    .answer-content {
+      min-height: 210px;
+      padding: 22px;
+      color: #98a5b7;
+      font-size: 12px;
+      line-height: 1.7;
+    }
+    .answer-content > strong { color: #dce3ec; }
+    .answer-content ul {
+      display: grid;
+      gap: 8px;
+      margin: 14px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+    .answer-content li {
+      padding: 10px 11px;
+      border: 1px solid rgba(255, 255, 255, .06);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, .022);
+      color: #b9c3d1;
+      line-height: 1.45;
+    }
+    .answer-hint {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 13px 22px;
+      border-top: 1px solid var(--line);
+      color: #647185;
+      font-size: 10px;
+    }
+    .answer-hint::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 0 4px rgba(49, 208, 170, .07);
+    }
+    .loading { color: var(--info); }
+    .error { color: var(--danger); }
+    .success { color: var(--success); }
 
-    .container{display:flex;min-height:100vh}
-    aside{
-      width:260px;background:var(--panel);padding:24px;display:flex;
-      flex-direction:column;gap:18px;border-right:1px solid #1a1a1a;
+    @media (max-width: 1180px) {
+      .consultation-layout { grid-template-columns: 1fr; }
+      .consultation-answer.answer-box { position: static; min-height: 260px; }
     }
-    aside .logo{display:flex;align-items:center;gap:12px;font-weight:700}
-    aside .logo .mark{
-      width:40px;height:40px;border-radius:10px;
-      background:linear-gradient(135deg,var(--accent),#ffa257);
-      display:flex;align-items:center;justify-content:center;
-      color:var(--bg);font-weight:800;
-    }
-    aside nav{flex:1;display:flex;flex-direction:column;gap:12px}
-    aside nav a{
-      display:block;padding:10px 14px;border-radius:10px;
-      color:var(--white);text-decoration:none;
-    }
-    aside nav a.active,aside nav a:hover{
-      background:rgba(255,106,0,0.2);color:var(--accent);
-    }
-    .user{
-      margin-top:auto;background:#1a1a1a;padding:15px;
-      border-radius:10px;text-align:center;
-    }
-    .logout{
-      margin-top:10px;padding:10px;border:none;border-radius:10px;
-      background:rgba(255,77,77,0.2);color:var(--danger);cursor:pointer;
-    }
-
-    main{flex:1;padding:30px;overflow-y:auto}
-    .header{margin-bottom:26px}
-    .header h1{margin-bottom:6px}
-    .header p{color:var(--muted)}
-
-    .question-grid{
-      display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-      gap:16px;
-      margin-bottom:24px;
-    }
-    .question-btn{
-      text-align:left;background:var(--panel);color:var(--white);
-      border:1px solid #222;border-left:4px solid var(--accent);
-      padding:18px;border-radius:var(--radius);cursor:pointer;
-      transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease;
-    }
-    .question-btn:hover{
-      transform:translateY(-3px);border-color:rgba(255,106,0,.5);
-      box-shadow:0 8px 24px rgba(255,106,0,.12);
-    }
-    .question-btn strong{display:block;margin-bottom:8px;font-size:15px}
-    .question-btn small{color:var(--muted);line-height:1.4}
-
-    .answer-box{
-      background:var(--panel);border:1px solid #222;
-      border-radius:var(--radius);padding:22px;min-height:180px;
-      box-shadow:var(--shadow);
-    }
-    .answer-box h2{font-size:18px;margin-bottom:12px;color:var(--accent)}
-    .answer-content{color:var(--muted);line-height:1.7}
-    .answer-content ul{padding-left:20px;margin-top:10px}
-    .answer-content li{margin-bottom:7px}
-    .loading{color:var(--info)}
-    .error{color:var(--danger)}
-    .success{color:var(--success)}
-
-    @media(max-width:850px){
-      .container{display:block}
-      aside{width:100%;min-height:auto}
-      aside nav{display:grid;grid-template-columns:repeat(2,1fr)}
-      main{padding:20px}
+    @media (max-width: 720px) {
+      .question-grid { grid-template-columns: 1fr !important; padding: 12px; }
+      .question-btn { min-height: 132px !important; }
+      .question-panel > .surface-header { align-items: flex-start; flex-direction: column; }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <aside>
-      <div class="logo"><span class="mark">A+</span> Auto+Assis</div>
-      <nav>
-        <a href="dashboard.html">Dashboard</a>
-        <a href="estoque.html">Estoque</a>
-        <a href="movimentacao.html">Movimentações</a>
-        <a href="servicos.html">Serviços</a>
-        <a href="relatorio.html">Relatórios</a>
-        <a href="consultas.html" class="active">Consultas Rápidas</a>
-      </nav>
-      <div class="user">
-        <strong id="nomeGerente">Administrador</strong><br>
-        <small style="color:var(--muted)">Gerente</small>
+  <aside>
+    <div class="logo"><span class="mark">A+</span><span>Auto+Assis</span></div>
+    <div class="workspace-label"><span class="workspace-dot"></span><span><small>AMBIENTE</small>Oficina principal</span></div>
+    <nav>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="estoque.html">Estoque</a>
+      <a href="movimentacao.html">Movimentações</a>
+      <a href="servicos.html">Serviços</a>
+      <a href="relatorio.html">Relatórios</a>
+      <a href="consultas.html" class="active">Consultas rápidas</a>
+      <a href="gerentes.html">Gerentes</a>
+    </nav>
+    <div class="user profile-card">
+      <div class="profile-avatar" id="avatarGerenteConsultas">G</div>
+      <div><strong id="nomeGerente">Administrador</strong><small>Gerente</small></div>
+    </div>
+    <button id="sairBtnConsultas" type="button" onclick="fazerLogoff()">Sair da conta</button>
+  </aside>
+
+  <main>
+    <section class="page-heading">
+      <div>
+        <span class="page-overline">INSIGHTS INSTANTÂNEOS</span>
+        <h1>Consultas rápidas</h1>
+        <p>Respostas objetivas sobre estoque, operação e atendimento com dados atualizados.</p>
       </div>
-      <button class="logout" onclick="fazerLogoff()">Sair</button>
-    </aside>
-
-    <main>
-      <div class="header">
-        <h1>Consultas Rápidas</h1>
-        <p>Clique em uma pergunta para consultar os dados atuais da oficina.</p>
+      <div class="page-actions">
+        <span class="live-indicator"><i></i>Base conectada</span>
       </div>
+    </section>
 
-      <section class="question-grid">
-        <button class="question-btn" onclick="consultarEstoqueBaixo()">
-          <strong>⚠️ Quais peças precisam de reposição?</strong>
-          <small>Mostra peças com quantidade igual ou abaixo do mínimo.</small>
-        </button>
+    <section class="consultation-layout">
+      <article class="product-surface question-panel" aria-labelledby="questionTitle">
+        <header class="surface-header">
+          <div>
+            <span class="surface-eyebrow">PERGUNTAS DISPONÍVEIS</span>
+            <h2 id="questionTitle">O que você precisa saber?</h2>
+            <p>Selecione uma consulta para analisar os dados atuais da oficina.</p>
+          </div>
+          <span class="question-count" id="questionCount">8 consultas</span>
+        </header>
 
-        <button class="question-btn" onclick="consultarEstoqueZerado()">
-          <strong>🚫 Quais peças estão zeradas?</strong>
-          <small>Lista peças sem nenhuma unidade disponível.</small>
-        </button>
-
-        <button class="question-btn" onclick="consultarValorEstoque()">
-          <strong>💰 Qual é o valor total do estoque?</strong>
-          <small>Soma quantidade multiplicada pelo preço de cada peça.</small>
-        </button>
-
-        <button class="question-btn" onclick="consultarMovimentacoesHoje()">
-          <strong>↕️ Quantas movimentações ocorreram hoje?</strong>
-          <small>Exibe o total de entradas e saídas registradas hoje.</small>
-        </button>
-
-        <button class="question-btn" onclick="consultarServicosAtivos()">
-          <strong>🔧 Quantos serviços estão ativos?</strong>
-          <small>Conta solicitações que ainda não foram concluídas ou rejeitadas.</small>
-        </button>
-
-        <button class="question-btn" onclick="consultarAguardandoAprovacao()">
-          <strong>⏳ Quais serviços aguardam aprovação?</strong>
-          <small>Lista os orçamentos aguardando resposta do cliente.</small>
-        </button>
-
-        <button class="question-btn" onclick="consultarFaturamento()">
-          <strong>📈 Qual é o faturamento dos serviços concluídos?</strong>
-          <small>Soma os valores registrados nas solicitações concluídas.</small>
-        </button>
-
-        <button class="question-btn" onclick="consultarCategorias()">
-          <strong>📦 Quantas peças existem por categoria?</strong>
-          <small>Agrupa as peças cadastradas por categoria.</small>
-        </button>
-      </section>
-
-      <section class="answer-box">
-        <h2 id="answerTitle">Resultado da consulta</h2>
-        <div class="answer-content" id="answerContent">
-          Selecione uma pergunta acima para visualizar a resposta.
+        <div class="consultation-role-note" id="mechanicConsultationNote" role="note" hidden>
+          <span><strong>Visão operacional.</strong> Valores de estoque e faturamento ficam restritos ao gerente. As consultas abaixo não exibem preços nem dados pessoais desnecessários.</span>
         </div>
+
+        <div class="question-grid">
+          <button class="question-btn" type="button" onclick="consultarEstoqueBaixo()" aria-controls="answerContent">
+            <span class="question-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 2.8 20h18.4L12 3Z"/><path d="M12 9v5m0 3h.01"/></svg></span>
+            <span class="question-copy"><span class="question-type">ESTOQUE</span><strong>Quais peças precisam de reposição?</strong><small>Itens com quantidade igual ou abaixo do nível mínimo.</small></span>
+          </button>
+
+          <button class="question-btn" type="button" onclick="consultarEstoqueZerado()" aria-controls="answerContent">
+            <span class="question-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m4 7 8-4 8 4-8 4-8-4Z"/><path d="m4 7 8 4 8-4v10l-8 4-8-4V7Z"/><path d="M9 15h6"/></svg></span>
+            <span class="question-copy"><span class="question-type">DISPONIBILIDADE</span><strong>Quais peças estão zeradas?</strong><small>Produtos sem nenhuma unidade disponível no momento.</small></span>
+          </button>
+
+          <button class="question-btn manager-only" data-manager-only data-financial-consultation type="button" onclick="consultarValorEstoque()" aria-controls="answerContent">
+            <span class="question-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16v12H4zM4 10h16"/><path d="M16 15h.01"/></svg></span>
+            <span class="question-copy"><span class="question-type">PATRIMÔNIO</span><strong>Qual é o valor total do estoque?</strong><small>Soma das quantidades multiplicadas pelos preços cadastrados.</small></span>
+          </button>
+
+          <button class="question-btn" type="button" onclick="consultarMovimentacoesHoje()" aria-controls="answerContent">
+            <span class="question-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 7h11l-3-3m3 3-3 3M17 17H6l3 3m-3-3 3-3"/></svg></span>
+            <span class="question-copy"><span class="question-type">FLUXO DIÁRIO</span><strong>Quantas movimentações ocorreram hoje?</strong><small>Total de entradas e saídas registradas no dia.</small></span>
+          </button>
+
+          <button class="question-btn" type="button" onclick="consultarServicosAtivos()" aria-controls="answerContent">
+            <span class="question-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5-5L12 3.6 8.4 7.2 6.1 4.9a4 4 0 0 0 5 5L19 17.8a1.7 1.7 0 0 1-2.4 2.4l-7.9-7.9a4 4 0 0 0-5-5L6 9.6 9.6 6 7.3 3.7"/></svg></span>
+            <span class="question-copy"><span class="question-type">OPERAÇÃO</span><strong>Quantos serviços estão ativos?</strong><small>Atendimentos ainda não concluídos ou rejeitados.</small></span>
+          </button>
+
+          <button class="question-btn" type="button" onclick="consultarAguardandoAprovacao()" aria-controls="answerContent">
+            <span class="question-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+            <span class="question-copy"><span class="question-type">APROVAÇÕES</span><strong>Quais serviços aguardam aprovação?</strong><small>Orçamentos pendentes de uma resposta do cliente.</small></span>
+          </button>
+
+          <button class="question-btn manager-only" data-manager-only data-financial-consultation type="button" onclick="consultarFaturamento()" aria-controls="answerContent">
+            <span class="question-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19V9m6 10V5m6 14v-7m5 7H2"/><path d="m4 7 6-4 6 6 5-5"/></svg></span>
+            <span class="question-copy"><span class="question-type">RECEITA</span><strong>Qual é o faturamento dos serviços concluídos?</strong><small>Total dos valores registrados nas solicitações concluídas.</small></span>
+          </button>
+
+          <button class="question-btn" type="button" onclick="consultarCategorias()" aria-controls="answerContent">
+            <span class="question-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg></span>
+            <span class="question-copy"><span class="question-type">CATÁLOGO</span><strong>Quantas peças existem por categoria?</strong><small>Agrupamento dos tipos de peça por categoria cadastrada.</small></span>
+          </button>
+        </div>
+      </article>
+
+      <section class="answer-box consultation-answer" aria-labelledby="answerTitle">
+        <header class="answer-header">
+          <span class="answer-signal" aria-hidden="true">A+</span>
+          <div><span class="surface-eyebrow">RESULTADO</span><h2 id="answerTitle">Resultado da consulta</h2></div>
+        </header>
+        <div class="answer-content" id="answerContent" aria-live="polite">
+          Selecione uma pergunta para visualizar uma resposta com os dados atuais da oficina.
+        </div>
+        <div class="answer-hint">Informações consultadas diretamente na base operacional</div>
       </section>
-    </main>
-  </div>
+    </section>
+  </main>
 
   <script>
-    const API_BASE = 'http://localhost:3000/api';
+    const API_BASE = '/api';
 
-    const nomeLogado = localStorage.getItem('nomeGerenteLogado') || 'Administrador';
+    function textoSeguro(valor, padrao = '', limite = 160) {
+      const texto = typeof valor === 'string' ? valor.trim() : '';
+      return (texto || padrao).slice(0, limite);
+    }
+
+    function numeroSeguro(valor, padrao = 0) {
+      const numero = Number(valor);
+      return Number.isFinite(numero) ? numero : padrao;
+    }
+
+    function criarElemento(tag, classe, texto) {
+      const elemento = document.createElement(tag);
+      if (classe) elemento.className = classe;
+      if (texto !== undefined) elemento.textContent = texto;
+      return elemento;
+    }
+
+    function mostrarMensagem(texto, classe = '') {
+      document.getElementById('answerContent').replaceChildren(criarElemento('span', classe, texto));
+    }
+
+    function mostrarLista(titulo, itens) {
+      const conteudo = document.getElementById('answerContent');
+      const lista = document.createElement('ul');
+      itens.forEach((texto) => lista.appendChild(criarElemento('li', '', texto)));
+      conteudo.replaceChildren(criarElemento('strong', '', titulo), lista);
+    }
+
+    const usuarioConsultas = window.apiAuth.requireAuth(['gerente', 'mecanico']);
+    const ehMecanico = usuarioConsultas?.tipo === 'mecanico';
+    const nomeLogado = textoSeguro(usuarioConsultas?.nome, ehMecanico ? 'Mecânico' : 'Administrador', 80);
     document.getElementById('nomeGerente').textContent = nomeLogado;
+    document.getElementById('avatarGerenteConsultas').textContent = nomeLogado.charAt(0).toUpperCase() || 'G';
+    if (ehMecanico) {
+      document.getElementById('questionCount').textContent = '6 consultas operacionais';
+      document.getElementById('mechanicConsultationNote').hidden = false;
+      document.querySelectorAll('[data-financial-consultation]').forEach((botao) => { botao.hidden = true; });
+    }
 
     function fazerLogoff() {
-       window.apiAuth.logout();
+      window.apiAuth.logout();
     }
 
     function mostrarCarregando(titulo) {
       document.getElementById('answerTitle').textContent = titulo;
-      document.getElementById('answerContent').innerHTML = '<span class="loading">Consultando dados...</span>';
+      mostrarMensagem('Consultando dados...', 'loading');
     }
 
     function mostrarErro() {
-      document.getElementById('answerContent').innerHTML = '<span class="error">Não foi possível consultar o servidor. Verifique se o Node.js está em execução.</span>';
+      mostrarMensagem('Não foi possível consultar o servidor. Verifique se o Node.js está em execução.', 'error');
     }
 
     function formatarMoeda(valor) {
-      return Number(valor || 0).toLocaleString('pt-BR', {
+      return numeroSeguro(valor).toLocaleString('pt-BR', {
         style: 'currency',
         currency: 'BRL'
       });
@@ -202,7 +392,25 @@
     async function buscarDados(endpoint) {
       const resposta = await fetch(`${API_BASE}/${endpoint}`);
       if (!resposta.ok) throw new Error('Erro na consulta');
-      return resposta.json();
+      const dados = await resposta.json();
+      if (!Array.isArray(dados)) throw new Error('Resposta inválida do servidor');
+      return dados;
+    }
+
+    async function buscarResumoOperacional() {
+      const resposta = await fetch(`${API_BASE}/consultas/resumo-operacional`);
+      if (!resposta.ok) throw new Error('Erro na consulta');
+      const dados = await resposta.json();
+      if (!dados || typeof dados !== 'object' || Array.isArray(dados)) {
+        throw new Error('Resposta inválida do servidor');
+      }
+      return {
+        servicosAtivos: Math.max(0, numeroSeguro(dados.servicosAtivos)),
+        aguardandoAprovacao: Math.max(0, numeroSeguro(dados.aguardandoAprovacao)),
+        movimentacoesHoje: Math.max(0, numeroSeguro(dados.movimentacoesHoje)),
+        entradasHoje: Math.max(0, numeroSeguro(dados.entradasHoje)),
+        saidasHoje: Math.max(0, numeroSeguro(dados.saidasHoje))
+      };
     }
 
     async function consultarEstoqueBaixo() {
@@ -212,14 +420,14 @@
         const resultado = pecas.filter(p => Number(p.quantidade) <= Number(p.min));
 
         if (!resultado.length) {
-          document.getElementById('answerContent').innerHTML = '<span class="success">Nenhuma peça está abaixo do estoque mínimo.</span>';
+          mostrarMensagem('Nenhuma peça está abaixo do estoque mínimo.', 'success');
           return;
         }
 
-        document.getElementById('answerContent').innerHTML = `
-          <strong>${resultado.length} peça(s) precisam de reposição:</strong>
-          <ul>${resultado.map(p => `<li>${p.nome}: ${p.quantidade} unidade(s), mínimo ${p.min}</li>`).join('')}</ul>
-        `;
+        mostrarLista(
+          `${resultado.length} peça(s) precisam de reposição:`,
+          resultado.map((p) => `${textoSeguro(p.nome, 'Peça sem nome')}: ${Math.max(0, numeroSeguro(p.quantidade))} unidade(s), mínimo ${Math.max(0, numeroSeguro(p.min))}`)
+        );
       } catch (erro) { mostrarErro(); }
     }
 
@@ -230,80 +438,123 @@
         const resultado = pecas.filter(p => Number(p.quantidade) === 0);
 
         if (!resultado.length) {
-          document.getElementById('answerContent').innerHTML = '<span class="success">Nenhuma peça está zerada.</span>';
+          mostrarMensagem('Nenhuma peça está zerada.', 'success');
           return;
         }
 
-        document.getElementById('answerContent').innerHTML = `
-          <strong>${resultado.length} peça(s) sem estoque:</strong>
-          <ul>${resultado.map(p => `<li>${p.nome}${p.localizacao ? ` — ${p.localizacao}` : ''}</li>`).join('')}</ul>
-        `;
+        mostrarLista(
+          `${resultado.length} peça(s) sem estoque:`,
+          resultado.map((p) => {
+            const nome = textoSeguro(p.nome, 'Peça sem nome');
+            const localizacao = textoSeguro(p.localizacao, '', 100);
+            return `${nome}${localizacao ? ` — ${localizacao}` : ''}`;
+          })
+        );
       } catch (erro) { mostrarErro(); }
     }
 
     async function consultarValorEstoque() {
+      if (ehMecanico) {
+        mostrarMensagem('Consulta financeira restrita ao perfil de gerente.', 'error');
+        return;
+      }
       mostrarCarregando('Valor total do estoque');
       try {
         const pecas = await buscarDados('pecas');
-        const total = pecas.reduce((soma, p) => soma + (Number(p.quantidade) || 0) * (Number(p.preco) || 0), 0);
-        document.getElementById('answerContent').innerHTML = `O valor atual estimado do estoque é <strong class="success">${formatarMoeda(total)}</strong>.`;
+        const total = pecas.reduce((soma, p) => soma + numeroSeguro(p.quantidade) * numeroSeguro(p.preco), 0);
+        const conteudo = document.getElementById('answerContent');
+        conteudo.replaceChildren(
+          document.createTextNode('O valor atual estimado do estoque é '),
+          criarElemento('strong', 'success', formatarMoeda(total)),
+          document.createTextNode('.')
+        );
       } catch (erro) { mostrarErro(); }
     }
 
     async function consultarMovimentacoesHoje() {
       mostrarCarregando('Movimentações registradas hoje');
       try {
-        const movimentacoes = await buscarDados('movimentacoes');
-        const hoje = new Date().toISOString().split('T')[0];
-        const deHoje = movimentacoes.filter(m => m.data && m.data.startsWith(hoje));
-        const entradas = deHoje.filter(m => String(m.tipo || '').toLowerCase().includes('entrada')).length;
-        const saidas = deHoje.length - entradas;
+        const resumo = await buscarResumoOperacional();
 
-        document.getElementById('answerContent').innerHTML = `
-          Foram registradas <strong>${deHoje.length}</strong> movimentação(ões) hoje:<br>
-          <span class="success">${entradas} entrada(s)</span> e <span class="error">${saidas} saída(s)</span>.
-        `;
+        const conteudo = document.getElementById('answerContent');
+        conteudo.replaceChildren(
+          document.createTextNode('Foram registradas '),
+          criarElemento('strong', '', String(resumo.movimentacoesHoje)),
+          document.createTextNode(' movimentação(ões) hoje:'),
+          document.createElement('br'),
+          criarElemento('span', 'success', `${resumo.entradasHoje} entrada(s)`),
+          document.createTextNode(' e '),
+          criarElemento('span', 'error', `${resumo.saidasHoje} saída(s)`),
+          document.createTextNode('.')
+        );
       } catch (erro) { mostrarErro(); }
     }
 
     async function consultarServicosAtivos() {
       mostrarCarregando('Serviços ativos');
       try {
-        const solicitacoes = await buscarDados('solicitacoes');
-        const ativos = solicitacoes.filter(s => s.status !== 'Concluído' && s.status !== 'Rejeitado');
-        document.getElementById('answerContent').innerHTML = `Existem <strong class="success">${ativos.length}</strong> serviço(s) ativo(s) no momento.`;
+        const resumo = await buscarResumoOperacional();
+        const conteudo = document.getElementById('answerContent');
+        conteudo.replaceChildren(
+          document.createTextNode('Existem '),
+          criarElemento('strong', 'success', String(resumo.servicosAtivos)),
+          document.createTextNode(' serviço(s) ativo(s) no momento.')
+        );
       } catch (erro) { mostrarErro(); }
     }
 
     async function consultarAguardandoAprovacao() {
       mostrarCarregando('Serviços aguardando aprovação');
       try {
+        if (ehMecanico) {
+          const resumo = await buscarResumoOperacional();
+          if (!resumo.aguardandoAprovacao) {
+            mostrarMensagem('Nenhum serviço está aguardando aprovação.', 'success');
+            return;
+          }
+          const conteudo = document.getElementById('answerContent');
+          conteudo.replaceChildren(
+            document.createTextNode('Existem '),
+            criarElemento('strong', 'success', String(resumo.aguardandoAprovacao)),
+            document.createTextNode(' serviço(s) aguardando aprovação do cliente. Valores e dados pessoais permanecem restritos.')
+          );
+          return;
+        }
+
         const solicitacoes = await buscarDados('solicitacoes');
         const aguardando = solicitacoes.filter(s => s.status === 'Aguardando Aprovação');
 
         if (!aguardando.length) {
-          document.getElementById('answerContent').innerHTML = '<span class="success">Nenhum serviço está aguardando aprovação.</span>';
+          mostrarMensagem('Nenhum serviço está aguardando aprovação.', 'success');
           return;
         }
 
-        document.getElementById('answerContent').innerHTML = `
-          <strong>${aguardando.length} serviço(s) aguardando aprovação:</strong>
-          <ul>${aguardando.map(s => `<li>${s.nomeCliente} — ${s.veiculo} — ${formatarMoeda(s.custoSugerido)}</li>`).join('')}</ul>
-        `;
+        mostrarLista(
+          `${aguardando.length} serviço(s) aguardando aprovação:`,
+          aguardando.map((s) => `${textoSeguro(s.nomeCliente, 'Cliente não informado')} — ${textoSeguro(s.veiculo, 'Veículo não informado')} — ${formatarMoeda(s.custoSugerido)}`)
+        );
       } catch (erro) { mostrarErro(); }
     }
 
     async function consultarFaturamento() {
+      if (ehMecanico) {
+        mostrarMensagem('Consulta financeira restrita ao perfil de gerente.', 'error');
+        return;
+      }
       mostrarCarregando('Faturamento dos serviços concluídos');
       try {
         const solicitacoes = await buscarDados('solicitacoes');
         const concluidos = solicitacoes.filter(s => s.status === 'Concluído');
         const total = concluidos.reduce((soma, s) => soma + (Number(s.custoSugerido) || 0), 0);
 
-        document.getElementById('answerContent').innerHTML = `
-          O faturamento registrado em <strong>${concluidos.length}</strong> serviço(s) concluído(s) é
-          <strong class="success">${formatarMoeda(total)}</strong>.
-        `;
+        const conteudo = document.getElementById('answerContent');
+        conteudo.replaceChildren(
+          document.createTextNode('O faturamento registrado em '),
+          criarElemento('strong', '', String(concluidos.length)),
+          document.createTextNode(' serviço(s) concluído(s) é '),
+          criarElemento('strong', 'success', formatarMoeda(total)),
+          document.createTextNode('.')
+        );
       } catch (erro) { mostrarErro(); }
     }
 
@@ -311,23 +562,30 @@
       mostrarCarregando('Peças por categoria');
       try {
         const pecas = await buscarDados('pecas');
-        const categorias = {};
+        const categorias = Object.create(null);
 
         pecas.forEach(p => {
-          const categoria = p.categoria || 'Sem categoria';
+          const categoria = textoSeguro(p.categoria, 'Sem categoria', 100);
           categorias[categoria] = (categorias[categoria] || 0) + 1;
         });
 
         const itens = Object.entries(categorias).sort((a, b) => a[0].localeCompare(b[0]));
 
         if (!itens.length) {
-          document.getElementById('answerContent').innerHTML = 'Nenhuma peça cadastrada.';
+          document.getElementById('answerContent').textContent = 'Nenhuma peça cadastrada.';
           return;
         }
 
-        document.getElementById('answerContent').innerHTML = `
-          <ul>${itens.map(([categoria, quantidade]) => `<li><strong>${categoria}:</strong> ${quantidade} tipo(s) de peça</li>`).join('')}</ul>
-        `;
+        const lista = document.createElement('ul');
+        itens.forEach(([categoria, quantidade]) => {
+          const item = document.createElement('li');
+          item.append(
+            criarElemento('strong', '', `${categoria}:`),
+            document.createTextNode(` ${quantidade} tipo(s) de peça`)
+          );
+          lista.appendChild(item);
+        });
+        document.getElementById('answerContent').replaceChildren(lista);
       } catch (erro) { mostrarErro(); }
     }
   </script>

@@ -1,307 +1,864 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <script src="auth.js"></script>
-    <title>Serviços — Auto+Assis</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <style>
-        :root{ --bg:#0a0a0a; --panel:#0f0f0f; --accent:#ff6a00; --white:#ffffff; --muted:#cccccc; --success:#22c55e; --danger:#ff4d4d; --info:#1e88e5; --radius:12px; font-family:Inter,sans-serif; }
-        *{box-sizing:border-box;margin:0;padding:0}
-        body{background:var(--bg);color:var(--white);display:flex;height:100vh;}
-        aside{width:260px;background:var(--panel);padding:24px;display:flex;flex-direction:column;gap:18px; border-right: 1px solid #1a1a1a;}
-        aside .logo{display:flex;align-items:center;gap:12px;font-weight:700;}
-        aside .logo .mark{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#ffa257);display:flex;align-items:center;justify-content:center;color:var(--bg);font-weight:800;}
-        aside nav{flex:1;display:flex;flex-direction:column;gap:12px;}
-        aside nav a{display:block;padding:10px 14px;border-radius:10px;color:var(--white); text-decoration:none;}
-        aside nav a.active, aside nav a:hover{background:rgba(255,106,0,0.2); color:var(--accent);}
-        main{flex:1;padding:30px;overflow-y:auto;}
-        
-        .header-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; flex-wrap: wrap; gap: 15px; }
-        .header-top h1 { margin-bottom: 5px; }
-        
-        .btn-group { display: flex; gap: 10px; }
-        .btn-top { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; color: white; transition: 0.2s; }
-        .btn-atualizar { background: #333; }
-        .btn-atualizar:hover { background: #444; }
-        .btn-nova-os { background: var(--success); }
-        .btn-nova-os:hover { opacity: 0.8; }
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#080b10">
+  <title>Central de serviços — Auto+Assis</title>
+  <script src="auth.js"></script>
+  <link rel="stylesheet" href="product.css">
+  <script src="ui.js" defer></script>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { display: flex; margin: 0; min-height: 100vh; }
+    aside { display: flex; flex-direction: column; gap: 18px; }
+    aside nav { flex: 1; }
+    .visually-hidden {
+      position: absolute !important;
+      width: 1px !important;
+      height: 1px !important;
+      padding: 0 !important;
+      overflow: hidden !important;
+      clip: rect(0, 0, 0, 0) !important;
+      white-space: nowrap !important;
+      border: 0 !important;
+    }
 
-        .card-servico { background: var(--panel); padding: 20px; border-radius: var(--radius); margin-bottom: 15px; border-left: 5px solid #333; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #1a1a1a; border-right: 1px solid #1a1a1a; border-bottom: 1px solid #1a1a1a;}
-        .card-servico h3 { color: var(--accent); margin-bottom: 5px; }
-        .card-servico p { color: var(--muted); font-size: 0.9em; margin-bottom: 5px; }
-        
-        /* Botões do Card */
-        .btn-gerenciar { background: #333; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; text-decoration: none; display: inline-block;}
-        .btn-gerenciar:hover { background: var(--accent); }
-        
-        .btn-pdf { background: rgba(30, 136, 229, 0.2); color: var(--info); padding: 10px 20px; border: 1px solid var(--info); border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; margin-left: 10px; }
-        .btn-pdf:hover { background: var(--info); color: white; }
+    .service-overview {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .service-kpi {
+      min-width: 0;
+      padding: 17px 18px;
+      border: 1px solid var(--line);
+      border-radius: 17px;
+      background: linear-gradient(145deg, rgba(19, 27, 38, .96), rgba(11, 16, 24, .98));
+      box-shadow: 0 14px 38px rgba(0, 0, 0, .16);
+    }
+    .service-kpi span {
+      display: block;
+      color: #77859a;
+      font-size: 9px;
+      font-weight: 820;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .service-kpi strong {
+      display: block;
+      margin-top: 9px;
+      color: #f5f7fa;
+      font-size: 27px;
+      line-height: 1;
+      letter-spacing: -.045em;
+    }
+    .service-kpi small { display: block; margin-top: 7px; color: #657287; font-size: 9px; }
+    .service-kpi.waiting strong { color: var(--warning); }
+    .service-kpi.running strong { color: var(--info); }
+    .service-kpi.done strong { color: var(--success); }
 
-        .btn-ocultar { background: #444; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; margin-left: 10px; }
-        .btn-ocultar:hover { background: #222; }
-        
-        /* Cores de Status */
-        .border-pendente { border-left-color: #ff6a00; }
-        .border-analise { border-left-color: #1e88e5; }
-        .border-aprovado { border-left-color: #22c55e; }
-        .border-andamento { border-left-color: #f59e0b; }
-        .border-concluido { border-left-color: #888; opacity: 0.7; }
+    .service-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 14px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 17px;
+      background: rgba(14, 20, 29, .82);
+    }
+    .service-filters { display: flex; flex: 1; gap: 10px; min-width: 0; }
+    .search-field { position: relative; flex: 1; max-width: 520px; }
+    .search-field::before {
+      content: "";
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      width: 13px;
+      height: 13px;
+      border: 1.5px solid #6c788b;
+      border-radius: 50%;
+      transform: translateY(-58%);
+      pointer-events: none;
+    }
+    .search-field::after {
+      content: "";
+      position: absolute;
+      left: 25px;
+      top: 27px;
+      width: 6px;
+      height: 1.5px;
+      border-radius: 2px;
+      background: #6c788b;
+      transform: rotate(45deg);
+      pointer-events: none;
+    }
+    .search-field input { width: 100%; padding-left: 40px !important; }
+    .service-toolbar select { width: 205px; }
+    .result-count { flex: 0 0 auto; color: #748196; font-size: 10px; font-weight: 700; }
 
-        .status-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; background: rgba(255,255,255,0.1); color: white; }
-    
-/* Toast profissional */
-#toast {
-    position: fixed;
-    bottom: 30px;
-    right: 30px;
-    background: #111;
-    color: #fff;
-    border-left: 5px solid #ff6a00;
-    padding: 14px 18px;
-    border-radius: 10px;
-    opacity: 0;
-    transform: translateY(20px);
-    transition: .3s ease;
-    z-index: 9999;
-    pointer-events: none;
-    min-width: 260px;
-    max-width: 420px;
-    box-shadow: 0 10px 30px rgba(0,0,0,.45);
-    font-size: 14px;
-}
+    .service-list { display: grid; gap: 11px; }
+    .service-card {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 24px;
+      min-width: 0;
+      padding: 20px 21px 20px 24px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: linear-gradient(145deg, rgba(18, 25, 35, .96), rgba(11, 16, 24, .98));
+      box-shadow: 0 15px 38px rgba(0, 0, 0, .15);
+      transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease;
+    }
+    .service-card::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 3px;
+      background: #d88925;
+    }
+    .service-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(255, 255, 255, .13);
+      box-shadow: 0 19px 45px rgba(0, 0, 0, .22);
+    }
+    .service-card.status-analysis::before { background: var(--info); }
+    .service-card.status-approved::before { background: var(--success); }
+    .service-card.status-running::before { background: var(--warning); }
+    .service-card.status-closed::before { background: #667286; }
+    .service-card.status-closed { background: linear-gradient(145deg, rgba(17, 23, 31, .82), rgba(10, 14, 20, .88)); }
+    .service-card-main { min-width: 0; }
+    .service-card-top { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .vehicle-avatar {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      flex: 0 0 42px;
+      border: 1px solid rgba(255, 122, 26, .14);
+      border-radius: 12px;
+      background: rgba(255, 122, 26, .075);
+      color: var(--accent-2);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: -.02em;
+    }
+    .vehicle-title { min-width: 0; }
+    .vehicle-title h2 {
+      overflow: hidden;
+      margin: 0;
+      color: #edf1f6;
+      font-size: 15px;
+      letter-spacing: -.02em;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .vehicle-title p {
+      overflow: hidden;
+      margin: 4px 0 0;
+      color: #718095;
+      font-size: 10px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .service-problem {
+      display: -webkit-box;
+      max-width: 820px;
+      margin: 14px 0 0 54px;
+      overflow: hidden;
+      color: #a7b2c1;
+      font-size: 11px;
+      line-height: 1.55;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+    .service-tags { display: flex; flex-wrap: wrap; gap: 7px; margin: 13px 0 0 54px; }
+    .service-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 25px;
+      padding: 0 9px;
+      border: 1px solid rgba(255, 255, 255, .09);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .04);
+      color: #aeb8c7;
+      font-size: 9px;
+      font-weight: 780;
+    }
+    .service-badge::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: #8b96a6; }
+    .badge-analysis { color: #8fc2ff; background: rgba(97, 169, 255, .07); }
+    .badge-analysis::before { background: var(--info); }
+    .badge-approved { color: #75e0c4; background: rgba(49, 208, 170, .07); }
+    .badge-approved::before { background: var(--success); }
+    .badge-running, .badge-pending { color: #f6c978; background: rgba(248, 193, 92, .07); }
+    .badge-running::before, .badge-pending::before { background: var(--warning); }
+    .badge-closed { color: #98a4b4; }
+    .badge-order { color: var(--accent-2); background: rgba(255, 122, 26, .07); }
+    .badge-order::before { background: var(--accent); }
+    .badge-urgency-high { color: #ff919e; background: rgba(255, 101, 119, .08); }
+    .badge-urgency-high::before { background: var(--danger); }
+    .badge-urgency-medium { color: #f6c978; background: rgba(248, 193, 92, .07); }
+    .badge-urgency-medium::before { background: var(--warning); }
+    .badge-urgency-low { color: #8fc2ff; background: rgba(97, 169, 255, .07); }
+    .badge-urgency-low::before { background: var(--info); }
+    .service-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+    .service-actions .btn-gerenciar,
+    .service-actions button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 39px;
+      margin: 0;
+      padding: 0 12px;
+      border-radius: 10px !important;
+      font-size: 10px;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .btn-gerenciar { border: 0; background: linear-gradient(100deg, #ff6a12, #ff984c); color: #17100c; }
+    .btn-pdf { border: 1px solid var(--line-strong); background: rgba(255, 255, 255, .04); color: #c7d0dc; }
+    .btn-ocultar { border: 1px solid rgba(255, 101, 119, .15); background: rgba(255, 101, 119, .06); color: #ff8e9b; }
 
-#toast.show {
-    opacity: 1;
-    transform: translateY(0);
-}
-</style>
+    .service-state {
+      display: grid;
+      place-items: center;
+      min-height: 250px;
+      padding: 32px;
+      border: 1px dashed rgba(255, 255, 255, .1);
+      border-radius: 18px;
+      background: rgba(14, 20, 29, .55);
+      color: #78869a;
+      text-align: center;
+    }
+    .service-state strong { display: block; margin-bottom: 7px; color: #d9e0e9; font-size: 14px; }
+    .service-state p { margin: 0; font-size: 11px; line-height: 1.5; }
+    .service-state button { margin-top: 16px; padding: 0 14px; border: 1px solid var(--line-strong); background: rgba(255, 255, 255, .05); color: #eef2f6; }
+    .loading-pulse { width: 32px; height: 32px; margin-bottom: 14px; border: 3px solid rgba(255,255,255,.08); border-top-color: var(--accent); border-radius: 50%; animation: service-spin .8s linear infinite; }
+    @keyframes service-spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 1180px) {
+      .service-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .service-card { grid-template-columns: 1fr; gap: 18px; }
+      .service-actions { justify-content: flex-start; margin-left: 54px; }
+    }
+    @media (max-width: 760px) {
+      .service-toolbar, .service-filters { align-items: stretch; flex-direction: column; }
+      .search-field { max-width: none; }
+      .service-toolbar select { width: 100%; }
+      .result-count { padding-left: 2px; }
+    }
+    @media (max-width: 560px) {
+      .service-overview { grid-template-columns: 1fr 1fr; }
+      .service-kpi { padding: 15px; }
+      .service-card { padding: 18px; }
+      .service-problem, .service-tags, .service-actions { margin-left: 0; }
+      .service-actions { display: grid; grid-template-columns: 1fr 1fr; }
+      .service-actions .btn-gerenciar, .service-actions button { width: 100%; }
+    }
+  </style>
 </head>
 <body>
-    <aside>
-        <div class="logo"><span class="mark">A+</span> Auto+Assis</div>
-        <nav>
-            <a href="dashboard.html">Dashboard</a>
-            <a href="estoque.html">Estoque</a>
-            <a href="movimentacao.html">Movimentações</a>
-            <a href="servicos.html" class="active">Serviços</a>
-            <a href="relatorio.html">Relatórios</a>
-        <a href="consultas.html">Consultas Rápidas</a>
-        </nav>
-        
-        <div style="margin-top:auto; background: #1a1a1a; padding: 15px; border-radius: 10px; text-align: center;">
-            <strong id="nomeGerentePerfil">Administrador</strong><br>
-            <small style="color:var(--muted)">Gerente</small>
-        </div>
-        
-        <button onclick="window.location.href='login.html'" style="margin-top:10px; padding:10px; border:none; border-radius:10px; background:rgba(255,77,77,0.2); color:var(--danger); cursor:pointer;">Sair</button>
-    </aside>
+  <aside>
+    <div class="logo"><span class="mark">A+</span><span>Auto+Assis</span></div>
+    <div class="workspace-label"><span class="workspace-dot"></span><span><small>AMBIENTE</small>Oficina principal</span></div>
+    <nav>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="estoque.html">Estoque</a>
+      <a href="movimentacao.html">Movimentações</a>
+      <a href="servicos.html" class="active">Serviços</a>
+      <a href="relatorio.html">Relatórios</a>
+      <a href="consultas.html">Consultas rápidas</a>
+      <a href="gerentes.html">Gerentes</a>
+    </nav>
+    <div class="user profile-card">
+      <div class="profile-avatar" id="avatarGerente">G</div>
+      <div><strong id="nomeGerentePerfil">Gerente</strong><small>Administrador</small></div>
+    </div>
+    <button type="button" onclick="window.apiAuth.logout()">Sair da conta</button>
+  </aside>
 
-    <main>
-        <div class="header-top">
-            <div>
-                <h1>Painel de Serviços</h1>
-                <p style="color:var(--muted);">Faça a gestão das solicitações e ordens de serviço da oficina.</p>
-            </div>
-            <div class="btn-group">
-                <button class="btn-top btn-atualizar" onclick="carregarServicos()">🔄 Atualizar Lista</button>
-                <button class="btn-top btn-nova-os" onclick="window.location.href='novaos.html'">+ Nova OS Presencial</button>
-            </div>
-        </div>
+  <main>
+    <section class="page-heading">
+      <div>
+        <span class="page-overline">CENTRAL DE ATENDIMENTO</span>
+        <h1>Operação de serviços</h1>
+        <p>Acompanhe solicitações, prioridades e ordens de serviço em um único fluxo.</p>
+      </div>
+      <div class="page-actions">
+        <span class="live-indicator"><i></i>Fila sincronizada</span>
+        <button class="button-secondary" type="button" onclick="carregarServicos()">Atualizar lista</button>
+        <button class="button-primary manager-only" data-manager-only type="button" onclick="window.location.href='novaos.html'">+ Nova OS presencial</button>
+      </div>
+    </section>
 
-        <div id="listaServicos">
-            <p>A carregar serviços da base de dados...</p>
-        </div>
-    </main>
+    <section class="service-overview" aria-label="Resumo dos serviços">
+      <article class="service-kpi"><span>Visíveis na fila</span><strong id="totalServicos">—</strong><small>atendimentos operacionais</small></article>
+      <article class="service-kpi waiting"><span>Aguardando ação</span><strong id="totalAguardando">—</strong><small>pendentes ou em análise</small></article>
+      <article class="service-kpi running"><span>Em execução</span><strong id="totalExecucao">—</strong><small>aprovados ou em andamento</small></article>
+      <article class="service-kpi done"><span>Finalizados</span><strong id="totalFinalizados">—</strong><small>concluídos ou rejeitados</small></article>
+    </section>
 
-    <script>
-        // Lógica de perfil atualizada para a gaveta do Gerente
-        const nomeLogado = localStorage.getItem('nomeGerenteLogado') || 'Administrador';
-        document.getElementById('nomeGerentePerfil').textContent = nomeLogado;
+    <section class="service-toolbar" aria-label="Filtros dos serviços">
+      <div class="service-filters">
+        <label class="search-field">
+          <span class="visually-hidden">Buscar atendimento</span>
+          <input id="buscaServico" type="search" placeholder="Buscar por cliente, veículo, placa ou protocolo" autocomplete="off">
+        </label>
+        <label>
+          <span class="visually-hidden">Filtrar por status</span>
+          <select id="filtroStatus">
+            <option value="todos">Todos os status</option>
+            <option value="Pendente">Pendente</option>
+            <option value="Em Análise">Em análise</option>
+            <option value="Aguardando Aprovação">Aguardando aprovação</option>
+            <option value="Aprovado">Aprovado</option>
+            <option value="Em Andamento">Em andamento</option>
+            <option value="Concluído">Concluído</option>
+            <option value="Rejeitado">Rejeitado</option>
+          </select>
+        </label>
+      </div>
+      <span class="result-count" id="contadorResultados">Preparando fila…</span>
+    </section>
 
-        // Variavel global para guardar os serviços e podermos gerar o PDF deles
-        let todosOsServicos = [];
+    <section class="service-list" id="listaServicos" aria-live="polite" aria-busy="true">
+      <div class="service-state"><div><div class="loading-pulse" aria-hidden="true"></div><strong>Carregando atendimentos</strong><p>Consultando a base operacional da oficina.</p></div></div>
+    </section>
+  </main>
 
-        async function carregarServicos() {
-            const container = document.getElementById('listaServicos');
-            try {
-                const res = await fetch('http://localhost:3000/api/solicitacoes');
-                const dados = await res.json();
-                
-                // Filtra para não mostrar os arquivados na tela de serviços ativos
-               const ocultos = JSON.parse(localStorage.getItem('ocultosGerente')) || [];
-            const dadosVisiveis = dados.filter(s => !ocultos.includes(s.id.toString()));
-                todosOsServicos = dadosVisiveis;
-                container.innerHTML = '';
+  <div id="toast" aria-live="polite"></div>
 
-                // Ordena os serviços que vão aparecer na tela
-                dadosVisiveis.sort((a, b) => {
-                    if (a.status === 'Concluído') return 1;
-                    if (b.status === 'Concluído') return -1;
-                    return 0;
-                });
+  <script>
+    window.apiAuth.requireAuth(['gerente', 'mecanico']);
 
-                if (dadosVisiveis.length === 0) {
-                    container.innerHTML = '<p style="color:var(--muted)">Nenhum serviço pendente ou ativo na sua lista.</p>';
-                    return;
-                }
+    const usuarioLogado = window.apiAuth.getUsuario() || {};
+    const podeGerenciarFinanceiro = window.apiAuth.can('services.financial');
+    const podeGerarContrato = window.apiAuth.can('services.contract');
+    const nomeLogado = usuarioLogado.nome || localStorage.getItem('nomeGerenteLogado') || 'Gerente';
+    document.getElementById('nomeGerentePerfil').textContent = nomeLogado;
+    document.getElementById('avatarGerente').textContent = nomeLogado.trim().charAt(0).toUpperCase() || 'G';
 
-                // Renderiza cada serviço na tela
-                dadosVisiveis.forEach(s => {
-                    let classeBorda = 'border-pendente';
-                    if (s.status === 'Em Análise' || s.status === 'Aguardando Aprovação') classeBorda = 'border-analise';
-                    if (s.status === 'Aprovado') classeBorda = 'border-aprovado';
-                    if (s.status === 'Em Andamento') classeBorda = 'border-andamento';
-                    if (s.status === 'Concluído' || s.status === 'Rejeitado') classeBorda = 'border-concluido';
+    let todosOsServicos = [];
 
-                    let corUrgencia = '#333'; 
-                    if (s.urgencia === 'Alta' || s.urgencia === 'Urgente') corUrgencia = 'var(--danger)';
-                    else if (s.urgencia === 'Média') corUrgencia = '#f59e0b';
-                    else if (s.urgencia === 'Baixa') corUrgencia = '#1e88e5';
+    const gruposStatus = {
+      waiting: ['Pendente', 'Em Análise', 'Aguardando Aprovação'],
+      running: ['Aprovado', 'Em Andamento'],
+      closed: ['Concluído', 'Rejeitado']
+    };
 
-                    let badgeUrgencia = s.urgencia ? `<span class="status-badge" style="background:${corUrgencia}; margin-left:10px;">🚨 Urgência: ${s.urgencia}</span>` : '';
-
-                    let botoesAcao = `
-                        <a href="gerenciar_solicitacao.html?id=${s.id}" class="btn-gerenciar">Gerenciar</a>
-                        <button onclick="gerarPDF(${s.id})" class="btn-pdf">📄 Gerar PDF</button>
-                    `;
-                    
-                    // BOTÃO DE ARQUIVAR (Só aparece se concluído ou rejeitado)
-                    if (s.status === 'Concluído' || s.status === 'Rejeitado') {
-                        botoesAcao += `<button onclick="ocultarServico(${s.id})" class="btn-ocultar">DELETAR</button>`;
-                    }
-
-                    const card = document.createElement('div');
-                    card.className = `card-servico ${classeBorda}`;
-                    
-                    card.innerHTML = `
-                        <div>
-                            <h3>${s.veiculo} (Placa: ${s.placa})</h3>
-                            <p><strong>Cliente:</strong> ${s.nomeCliente} | <strong>Protocolo:</strong> SOL-${s.id}</p>
-                            <p><strong>Problema:</strong> ${s.problema}</p>
-                            <div style="margin-top: 10px;">
-                                <span class="status-badge">${s.status}</span>
-                                ${s.osNumero ? `<span class="status-badge" style="background:var(--accent); margin-left:10px;">${s.osNumero}</span>` : ''}
-                                ${badgeUrgencia}
-                            </div>
-                        </div>
-                        <div>
-                            ${botoesAcao}
-                        </div>
-                    `;
-                    container.appendChild(card);
-                });
-            } catch (erro) {
-                container.innerHTML = '<p style="color:red;">Erro ao ligar ao servidor Node.js.</p>';
-            }
-        }
-
-        // ==========================================
-        // NOVA MÁGICA: FUNÇÃO DE ARQUIVAR (SOFT DELETE)
-        // ==========================================
-        function ocultarServico(id) {
-    if (!confirm("Deseja apagar este serviço da sua tela?")) return;
-
-    const ocultos = JSON.parse(localStorage.getItem('ocultosGerente')) || [];
-
-    if (!ocultos.includes(id.toString())) {
-        ocultos.push(id.toString());
+    function escaparHtml(valor) {
+      return String(valor ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
     }
 
-    localStorage.setItem('ocultosGerente', JSON.stringify(ocultos));
-    mostrarToast("Serviço apagado com sucesso!");
+    function textoBusca(valor) {
+      return String(valor || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    }
+
+    function lerServicosOcultos() {
+      try {
+        const dados = JSON.parse(localStorage.getItem('ocultosGerente') || '[]');
+        return Array.isArray(dados) ? dados.map(String) : [];
+      } catch {
+        localStorage.removeItem('ocultosGerente');
+        return [];
+      }
+    }
+
+    function classeStatus(status) {
+      if (status === 'Em Análise' || status === 'Aguardando Aprovação') return 'analysis';
+      if (status === 'Aprovado') return 'approved';
+      if (status === 'Em Andamento') return 'running';
+      if (gruposStatus.closed.includes(status)) return 'closed';
+      return 'pending';
+    }
+
+    function classeUrgencia(urgencia) {
+      if (urgencia === 'Alta' || urgencia === 'Urgente') return 'high';
+      if (urgencia === 'Baixa') return 'low';
+      return 'medium';
+    }
+
+    function atualizarResumo(servicos) {
+      document.getElementById('totalServicos').textContent = servicos.length;
+      document.getElementById('totalAguardando').textContent = servicos.filter((item) => gruposStatus.waiting.includes(item.status)).length;
+      document.getElementById('totalExecucao').textContent = servicos.filter((item) => gruposStatus.running.includes(item.status)).length;
+      document.getElementById('totalFinalizados').textContent = servicos.filter((item) => gruposStatus.closed.includes(item.status)).length;
+    }
+
+    function renderizarServicos(servicos) {
+      const container = document.getElementById('listaServicos');
+      container.setAttribute('aria-busy', 'false');
+      document.getElementById('contadorResultados').textContent = `${servicos.length} ${servicos.length === 1 ? 'resultado' : 'resultados'}`;
+
+      if (!servicos.length) {
+        container.innerHTML = '<div class="service-state"><div><strong>Nenhum atendimento encontrado</strong><p>Ajuste os filtros ou registre uma nova ordem de serviço.</p></div></div>';
+        return;
+      }
+
+      container.innerHTML = servicos.map((servico) => {
+        const statusClass = classeStatus(servico.status);
+        const placa = escaparHtml(servico.placa || 'Sem placa');
+        const iniciais = textoBusca(servico.veiculo).slice(0, 2).toUpperCase() || 'OS';
+        const urgencia = servico.urgencia
+          ? `<span class="service-badge badge-urgency-${classeUrgencia(servico.urgencia)}">Urgência ${escaparHtml(servico.urgencia)}</span>`
+          : '';
+        const ordem = servico.osNumero
+          ? `<span class="service-badge badge-order">${escaparHtml(servico.osNumero)}</span>`
+          : '';
+        const arquivar = podeGerenciarFinanceiro && gruposStatus.closed.includes(servico.status)
+          ? `<button type="button" class="btn-ocultar" onclick="ocultarServico(${Number(servico.id)})">Arquivar</button>`
+          : '';
+        const contratoPronto = Boolean(servico.osNumero) && (
+          Number(servico.orcamentoVersao || 0) > 0
+          || (!podeGerenciarFinanceiro && !['Pendente', 'Em Análise'].includes(servico.status))
+        );
+        const contrato = podeGerarContrato && contratoPronto
+          ? `<button type="button" class="btn-pdf" onclick="gerarPDF(${Number(servico.id)})">Gerar contrato</button>`
+          : (podeGerarContrato ? '<span class="service-badge badge-order">Contrato após orçamento</span>' : '');
+
+        return `
+          <article class="service-card status-${statusClass}">
+            <div class="service-card-main">
+              <div class="service-card-top">
+                <span class="vehicle-avatar" aria-hidden="true">${escaparHtml(iniciais)}</span>
+                <div class="vehicle-title">
+                  <h2>${escaparHtml(servico.veiculo || 'Veículo não informado')} · ${placa}</h2>
+                  <p>${escaparHtml(servico.nomeCliente || 'Cliente não informado')} · Protocolo SOL-${Number(servico.id)}</p>
+                </div>
+              </div>
+              <p class="service-problem">${escaparHtml(servico.problema || 'Sem descrição do problema.')}</p>
+              <div class="service-tags">
+                <span class="service-badge badge-${statusClass}">${escaparHtml(servico.status || 'Sem status')}</span>
+                ${ordem}
+                ${urgencia}
+              </div>
+            </div>
+            <div class="service-actions">
+              <a href="gerenciar_solicitacao.html?id=${Number(servico.id)}" class="btn-gerenciar">Gerenciar</a>
+              ${contrato}
+              ${arquivar}
+            </div>
+          </article>`;
+      }).join('');
+    }
+
+    function aplicarFiltros() {
+      const termo = textoBusca(document.getElementById('buscaServico').value);
+      const status = document.getElementById('filtroStatus').value;
+      const filtrados = todosOsServicos.filter((servico) => {
+        const conteudo = textoBusca([servico.nomeCliente, servico.veiculo, servico.placa, servico.problema, `SOL-${servico.id}`].join(' '));
+        return (!termo || conteudo.includes(termo)) && (status === 'todos' || servico.status === status);
+      });
+      renderizarServicos(filtrados);
+    }
+
+    async function carregarServicos() {
+      const container = document.getElementById('listaServicos');
+      container.setAttribute('aria-busy', 'true');
+      container.innerHTML = '<div class="service-state"><div><div class="loading-pulse" aria-hidden="true"></div><strong>Atualizando atendimentos</strong><p>Sincronizando a fila da oficina.</p></div></div>';
+
+      try {
+        const resposta = await window.apiAuth.fetch('/api/solicitacoes');
+        const dados = await resposta.json().catch(() => ([]));
+        if (!resposta.ok) throw new Error(dados.erro || 'Não foi possível carregar os atendimentos.');
+        if (!Array.isArray(dados)) throw new Error('O servidor retornou uma resposta inválida.');
+
+        const ocultos = lerServicosOcultos();
+        todosOsServicos = dados
+          .filter((servico) => !ocultos.includes(String(servico.id)))
+          .sort((a, b) => {
+            const pesos = { Pendente: 1, 'Em Análise': 2, 'Aguardando Aprovação': 3, Aprovado: 4, 'Em Andamento': 5, Concluído: 6, Rejeitado: 7 };
+            return (pesos[a.status] || 99) - (pesos[b.status] || 99) || Number(b.id) - Number(a.id);
+          });
+
+        atualizarResumo(todosOsServicos);
+        aplicarFiltros();
+      } catch (erro) {
+        console.error('Erro ao carregar serviços:', erro);
+        container.setAttribute('aria-busy', 'false');
+        container.innerHTML = `<div class="service-state"><div><strong>Não foi possível conectar ao servidor</strong><p>${escaparHtml(erro.message)}</p><button type="button" onclick="carregarServicos()">Tentar novamente</button></div></div>`;
+        document.getElementById('contadorResultados').textContent = 'Falha na sincronização';
+      }
+    }
+
+    function ocultarServico(id) {
+      if (!confirm('Deseja arquivar este serviço da sua lista?')) return;
+      const ocultos = lerServicosOcultos();
+      if (!ocultos.includes(String(id))) ocultos.push(String(id));
+      localStorage.setItem('ocultosGerente', JSON.stringify(ocultos));
+      mostrarToast('Serviço arquivado da visualização.');
+      carregarServicos();
+    }
+
+    function textoDocumento(valor, alternativa = 'Não informado') {
+      const texto = String(valor ?? '').trim();
+      return texto || alternativa;
+    }
+
+    function formatarDataDocumento(valor, incluirHora = false) {
+      const dataSomente = typeof valor === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(valor);
+      const data = dataSomente
+        ? (() => { const [ano, mes, dia] = valor.split('-').map(Number); return new Date(ano, mes - 1, dia); })()
+        : (valor ? new Date(valor) : new Date());
+      if (Number.isNaN(data.getTime())) return 'Não informada';
+      return new Intl.DateTimeFormat('pt-BR', incluirHora
+        ? { dateStyle: 'short', timeStyle: 'short' }
+        : { dateStyle: 'short' }).format(data);
+    }
+
+    function formatarMoedaDocumento(valor) {
+      const numero = Number(valor);
+      return Number.isFinite(numero) && numero >= 0
+        ? numero.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+        : 'Não informado';
+    }
+
+    function criarNoDocumento(documento, tag, classe, texto) {
+      const elemento = documento.createElement(tag);
+      if (classe) elemento.className = classe;
+      if (texto !== undefined) elemento.textContent = texto;
+      return elemento;
+    }
+
+    async function carregarConfiguracaoOficina() {
+      try {
+        const resposta = await window.apiAuth.fetch('/api/configuracao-oficina');
+        if (!resposta.ok) return {};
+        const dados = await resposta.json().catch(() => ({}));
+        return dados && typeof dados === 'object' && !Array.isArray(dados) ? dados : {};
+      } catch (erro) {
+        console.warn('Configuração da oficina indisponível para o documento:', erro);
+        return {};
+      }
+    }
+
+    async function gerarPDF(idServico) {
+      const resumoServico = todosOsServicos.find((item) => String(item.id) === String(idServico));
+      if (!podeGerarContrato || !resumoServico || !Number.isSafeInteger(Number(resumoServico.id))) {
+        mostrarToast('Não foi possível localizar os dados desta ordem de serviço.', 'error');
+        return;
+      }
+
+      // A janela precisa ser aberta antes de qualquer await para não ser bloqueada pelo navegador.
+      const janela = window.open('', `autoassis-os-${Number(resumoServico.id)}`, 'popup=yes,width=1060,height=820');
+      if (!janela) {
+        mostrarToast('O navegador bloqueou o documento. Permita pop-ups para gerar o PDF.', 'error');
+        return;
+      }
+      janela.opener = null;
+      janela.document.title = 'Preparando documento — Auto+Assis';
+      janela.document.body.textContent = 'Preparando a ordem de serviço…';
+
+      try {
+        const [respostaContrato, oficina] = await Promise.all([
+          window.apiAuth.fetch(`/api/solicitacoes/${Number(resumoServico.id)}/contrato`),
+          carregarConfiguracaoOficina()
+        ]);
+        const servico = await respostaContrato.json().catch(() => ({}));
+        if (!respostaContrato.ok) {
+          throw new Error(servico.erro || 'Não foi possível carregar os dados do contrato.');
+        }
+        if (!servico || String(servico.id) !== String(resumoServico.id)) {
+          throw new Error('O servidor retornou uma ordem de serviço inválida.');
+        }
+        const camposOficina = [oficina.nome, oficina.documento || oficina.cnpj, oficina.telefone, oficina.email, oficina.endereco];
+        if (oficina.completa === false || camposOficina.some((campo) => !String(campo || '').trim())) {
+          janela.close();
+          mostrarToast('Complete os dados da oficina em Acessos antes de emitir contratos.', 'error');
+          return;
+        }
+        const documento = janela.document;
+        const emitida = Boolean(String(servico.osNumero || '').trim());
+        const numeroOs = emitida
+          ? textoDocumento(servico.osNumero)
+          : `SOL-${Number(servico.id)} (protocolo — OS ainda não emitida)`;
+        const nomeOficina = textoDocumento(
+          oficina.nomeFantasia || oficina.nome || oficina.razaoSocial,
+          'Oficina não configurada'
+        );
+        const tituloArquivo = `OS_${String(servico.osNumero || servico.placa || servico.id)
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-zA-Z0-9-]/g, '_')}_AutoAssis`;
+
+        documento.title = tituloArquivo;
+        documento.documentElement.lang = 'pt-BR';
+        documento.head.textContent = '';
+        documento.body.textContent = '';
+
+        const estilo = documento.createElement('style');
+        estilo.textContent = `
+          @page { size: A4 portrait; margin: 10mm; }
+          * { box-sizing: border-box; }
+          html { background: #d7d7d4; }
+          body { margin: 0; color: #16191b; background: #d7d7d4; font-family: Arial, Helvetica, sans-serif; font-size: 10.5pt; line-height: 1.45; }
+          .print-controls { position: sticky; z-index: 2; top: 0; display: flex; justify-content: center; gap: 10px; padding: 12px; background: #181b1d; }
+          .print-controls button { min-height: 40px; padding: 0 18px; border: 1px solid #fff; color: #fff; background: transparent; font: 700 10pt Arial, sans-serif; cursor: pointer; }
+          .print-controls .primary { border-color: #ef5b24; color: #17191a; background: #ef5b24; }
+          .print-status { align-self: center; margin-right: 12px; color: #d7dadc; font-size: 9pt; }
+          .document { width: 190mm; min-height: 277mm; margin: 18px auto; padding: 13mm 14mm 11mm; background: #fff; box-shadow: 0 8px 34px rgba(0,0,0,.22); }
+          .document-header { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: start; padding-bottom: 8mm; border-bottom: 3px solid #181b1d; }
+          .brand { display: flex; gap: 12px; align-items: center; }
+          .brand-mark { display: grid; width: 13mm; height: 13mm; place-items: center; color: #181b1d; background: #ef5b24; font-size: 15pt; font-weight: 900; }
+          .brand strong { display: block; font-size: 17pt; line-height: 1; letter-spacing: -.4px; }
+          .brand small { display: block; margin-top: 4px; color: #5b6164; font-size: 8pt; text-transform: uppercase; letter-spacing: 1.2px; }
+          .office-name { margin: 10px 0 0; font-size: 9.5pt; font-weight: 700; }
+          .office-contact { max-width: 112mm; margin: 3px 0 0; color: #5b6164; font-size: 8.5pt; }
+          .doc-meta { min-width: 57mm; padding-left: 6mm; border-left: 1px solid #aeb2b3; text-align: right; }
+          .doc-meta span { display: block; color: #6a6f72; font-size: 7.5pt; font-weight: 700; text-transform: uppercase; letter-spacing: .9px; }
+          .doc-meta strong { display: block; max-width: 64mm; margin-top: 3px; font-size: 12pt; line-height: 1.25; }
+          .doc-meta time { display: block; margin-top: 7px; color: #5f6467; font-size: 8.5pt; }
+          .draft { display: inline-block; margin-top: 7px; padding: 3px 7px; border: 1px solid #a33c20; color: #a33c20; font-size: 7.5pt; font-weight: 800; letter-spacing: .6px; text-transform: uppercase; }
+          h1 { margin: 8mm 0 2mm; font-size: 18pt; line-height: 1.1; text-transform: uppercase; letter-spacing: .4px; }
+          .subtitle { margin: 0 0 7mm; color: #62686b; font-size: 9pt; }
+          .section { margin-top: 6mm; break-inside: avoid; }
+          .section-title { display: flex; align-items: center; gap: 8px; margin: 0 0 3mm; font-size: 9pt; text-transform: uppercase; letter-spacing: .9px; }
+          .section-number { display: grid; width: 7mm; height: 7mm; place-items: center; color: #fff; background: #181b1d; font-size: 7.5pt; }
+          .field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid #b8bcbe; border-left: 1px solid #b8bcbe; }
+          .field { min-height: 16mm; padding: 3mm; border-right: 1px solid #b8bcbe; border-bottom: 1px solid #b8bcbe; }
+          .field.wide { grid-column: 1 / -1; }
+          .field-label { display: block; margin-bottom: 1.5mm; color: #686e71; font-size: 7.5pt; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
+          .field-value { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 10pt; font-weight: 600; }
+          .narrative { min-height: 25mm; padding: 4mm; border: 1px solid #b8bcbe; white-space: pre-wrap; overflow-wrap: anywhere; }
+          .budget { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 6mm; padding: 4mm; border: 2px solid #181b1d; background: #f6f3ec; }
+          .budget span { display: block; color: #62676a; font-size: 8pt; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; }
+          .budget strong { font-size: 16pt; }
+          .approval-state { margin: 2mm 0 0; font-size: 8.5pt; }
+          .decision { display: grid; gap: 2mm; margin-top: 3mm; padding: 3.5mm; border: 1px solid #b8bcbe; font-size: 9pt; font-weight: 700; }
+          .terms { margin: 0; padding: 0 0 0 5mm; }
+          .terms li { margin: 0 0 2mm; padding-left: 1mm; }
+          .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 14mm; margin-top: 15mm; break-inside: avoid; }
+          .signature { padding-top: 3mm; border-top: 1px solid #181b1d; text-align: center; }
+          .signature strong { display: block; font-size: 9pt; }
+          .signature span { display: block; margin-top: 2px; color: #656a6d; font-size: 7.5pt; }
+          .location-date { margin-top: 9mm; color: #4f5558; font-size: 8.5pt; }
+          .document-footer { display: flex; justify-content: space-between; gap: 8mm; margin-top: 9mm; padding-top: 3mm; border-top: 1px solid #b8bcbe; color: #6c7174; font-size: 7pt; }
+          @media (max-width: 760px) {
+            .document { width: calc(100% - 20px); min-height: 0; margin: 10px; padding: 22px; }
+            .document-header, .field-grid, .signatures { grid-template-columns: 1fr; }
+            .doc-meta { padding: 12px 0 0; border-top: 1px solid #aeb2b3; border-left: 0; text-align: left; }
+            .field.wide { grid-column: auto; }
+          }
+          @media print {
+            html, body { background: #fff; }
+            .print-controls { display: none !important; }
+            .document { width: auto; min-height: 0; margin: 0; padding: 0; box-shadow: none; }
+            .document-header, .budget, .section-number, .brand-mark { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+          }
+        `;
+        documento.head.appendChild(estilo);
+
+        const controles = criarNoDocumento(documento, 'div', 'print-controls');
+        const estadoImpressao = criarNoDocumento(documento, 'span', 'print-status', 'Documento pronto para imprimir ou salvar em PDF');
+        const botaoImprimir = criarNoDocumento(documento, 'button', 'primary', 'Imprimir / salvar PDF');
+        botaoImprimir.type = 'button';
+        const botaoFechar = criarNoDocumento(documento, 'button', '', 'Fechar');
+        botaoFechar.type = 'button';
+        controles.append(estadoImpressao, botaoImprimir, botaoFechar);
+        documento.body.appendChild(controles);
+
+        const pagina = criarNoDocumento(documento, 'main', 'document');
+        pagina.setAttribute('aria-label', `Ordem de serviço ${numeroOs}`);
+        documento.body.appendChild(pagina);
+
+        const cabecalho = criarNoDocumento(documento, 'header', 'document-header');
+        const identidade = criarNoDocumento(documento, 'div', 'identity');
+        const marca = criarNoDocumento(documento, 'div', 'brand');
+        marca.append(
+          criarNoDocumento(documento, 'span', 'brand-mark', 'A+'),
+          (() => {
+            const bloco = criarNoDocumento(documento, 'div');
+            bloco.append(
+              criarNoDocumento(documento, 'strong', '', 'Auto+Assis'),
+              criarNoDocumento(documento, 'small', '', 'Gestão profissional de oficina')
+            );
+            return bloco;
+          })()
+        );
+        identidade.appendChild(marca);
+        identidade.appendChild(criarNoDocumento(documento, 'p', 'office-name', nomeOficina));
+
+        const contatoOficina = [
+          oficina.razaoSocial && oficina.razaoSocial !== nomeOficina ? `Razão social: ${oficina.razaoSocial}` : '',
+          oficina.cnpj ? `CNPJ: ${oficina.cnpj}` : '',
+          oficina.telefone ? `Telefone: ${oficina.telefone}` : '',
+          oficina.email ? `E-mail: ${oficina.email}` : '',
+          oficina.endereco ? `Endereço: ${oficina.endereco}` : ''
+        ].filter(Boolean).join(' · ');
+        if (contatoOficina) identidade.appendChild(criarNoDocumento(documento, 'p', 'office-contact', contatoOficina));
+
+        const metadados = criarNoDocumento(documento, 'div', 'doc-meta');
+        metadados.append(
+          criarNoDocumento(documento, 'span', '', emitida ? 'Número da ordem de serviço' : 'Protocolo do atendimento'),
+          criarNoDocumento(documento, 'strong', '', numeroOs),
+          criarNoDocumento(documento, 'time', '', `Emitido em ${formatarDataDocumento(null, true)}`)
+        );
+        if (!emitida) metadados.appendChild(criarNoDocumento(documento, 'b', 'draft', 'Rascunho — OS não emitida'));
+        cabecalho.append(identidade, metadados);
+        pagina.appendChild(cabecalho);
+        pagina.append(
+          criarNoDocumento(documento, 'h1', '', 'Ordem de serviço e termo de autorização'),
+          criarNoDocumento(documento, 'p', 'subtitle', 'Registro do atendimento, orçamento e decisão do cliente sobre a execução dos serviços.')
+        );
+
+        function adicionarSecao(numero, titulo) {
+          const secao = criarNoDocumento(documento, 'section', 'section');
+          const cabecalhoSecao = criarNoDocumento(documento, 'h2', 'section-title');
+          cabecalhoSecao.append(
+            criarNoDocumento(documento, 'span', 'section-number', String(numero).padStart(2, '0')),
+            criarNoDocumento(documento, 'span', '', titulo)
+          );
+          secao.appendChild(cabecalhoSecao);
+          pagina.appendChild(secao);
+          return secao;
+        }
+
+        function adicionarCampos(secao, campos) {
+          const grade = criarNoDocumento(documento, 'div', 'field-grid');
+          campos.forEach((campo) => {
+            const bloco = criarNoDocumento(documento, 'div', `field${campo.largo ? ' wide' : ''}`);
+            bloco.append(
+              criarNoDocumento(documento, 'span', 'field-label', campo.rotulo),
+              criarNoDocumento(documento, 'span', 'field-value', textoDocumento(campo.valor))
+            );
+            grade.appendChild(bloco);
+          });
+          secao.appendChild(grade);
+        }
+
+        const cliente = adicionarSecao(1, 'Cliente e contato');
+        adicionarCampos(cliente, [
+          { rotulo: 'Cliente', valor: servico.nomeCliente },
+          { rotulo: 'E-mail', valor: servico.emailCliente },
+          { rotulo: 'Telefone / WhatsApp', valor: servico.telefone },
+          { rotulo: 'Abertura do atendimento', valor: formatarDataDocumento(servico.dataCriacao, true) }
+        ]);
+
+        const veiculo = adicionarSecao(2, 'Identificação do veículo');
+        adicionarCampos(veiculo, [
+          { rotulo: 'Veículo', valor: servico.veiculo },
+          { rotulo: 'Ano', valor: servico.ano },
+          { rotulo: 'Placa', valor: servico.placa },
+          { rotulo: 'Urgência informada', valor: servico.urgencia || 'Normal' }
+        ]);
+
+        const atendimento = adicionarSecao(3, 'Registro do atendimento');
+        adicionarCampos(atendimento, [
+          { rotulo: 'Status no sistema', valor: servico.status },
+          { rotulo: 'Número / protocolo', valor: numeroOs },
+          { rotulo: 'Responsável técnico', valor: servico.responsavel || 'A definir' },
+          { rotulo: 'Início previsto', valor: servico.dataInicio ? formatarDataDocumento(servico.dataInicio) : 'A definir' }
+        ]);
+        atendimento.appendChild(criarNoDocumento(documento, 'div', 'narrative', textoDocumento(servico.problema, 'Nenhum relato foi registrado.')));
+
+        const autorizacao = adicionarSecao(4, 'Orçamento e autorização');
+        const orcamento = criarNoDocumento(documento, 'div', 'budget');
+        const rotuloOrcamento = criarNoDocumento(documento, 'div');
+        rotuloOrcamento.append(
+          criarNoDocumento(documento, 'span', '', 'Valor do orçamento registrado'),
+          criarNoDocumento(documento, 'p', 'approval-state', `Situação no sistema: ${textoDocumento(servico.status)} · versão ${Number(servico.orcamentoVersao || 0) || 'não versionada'}`)
+        );
+        orcamento.append(rotuloOrcamento, criarNoDocumento(documento, 'strong', '', formatarMoedaDocumento(servico.custoSugerido)));
+        autorizacao.appendChild(orcamento);
+        const decisaoRegistrada = ['Aprovado', 'Rejeitado'].includes(servico.decisao) ? servico.decisao : '';
+        const aprovado = decisaoRegistrada === 'Aprovado';
+        const rejeitado = decisaoRegistrada === 'Rejeitado';
+        const decisao = criarNoDocumento(documento, 'div', 'decision');
+        decisao.append(
+          criarNoDocumento(documento, 'span', '', `${aprovado ? '☒' : '☐'} Autorizo a execução conforme o orçamento indicado neste documento.`),
+          criarNoDocumento(documento, 'span', '', `${rejeitado ? '☒' : '☐'} Não autorizo a execução neste momento.`),
+          criarNoDocumento(documento, 'span', '', 'Observações: ________________________________________________________________')
+        );
+        autorizacao.appendChild(decisao);
+        const origemDecisao = servico.decisaoOrigem === 'cliente' ? 'Portal do cliente' : servico.decisaoOrigem === 'gerente' ? 'Registro realizado pela gerência' : '';
+        const registroDecisao = decisaoRegistrada
+          ? `Decisão registrada em ${formatarDataDocumento(servico.decisaoEm, true)} · ${origemDecisao || 'origem não informada'}`
+          : 'Sem decisão eletrônica registrada. A autorização depende da assinatura neste documento.';
+        autorizacao.appendChild(criarNoDocumento(documento, 'p', 'approval-state', registroDecisao));
+        if (servico.orcamentoHash) {
+          autorizacao.appendChild(criarNoDocumento(documento, 'p', 'approval-state', `Referência de integridade: ${textoDocumento(servico.orcamentoHash).slice(0, 16).toUpperCase()}`));
+        }
+
+        const condicoes = adicionarSecao(5, 'Condições registradas');
+        const lista = criarNoDocumento(documento, 'ol', 'terms');
+        [
+          'O relato inicial serve como referência para a triagem e não substitui o diagnóstico técnico do veículo.',
+          'A execução dos serviços e a aplicação de peças dependem da autorização do cliente, registrada neste documento ou no sistema.',
+          'Caso seja identificada uma necessidade não incluída no orçamento acima, a oficina deverá comunicar o cliente e solicitar nova autorização antes de prosseguir.',
+          'Prazos estimados, condições de pagamento e garantias aplicáveis devem ser informados pela oficina de acordo com os serviços e as peças efetivamente aprovados.',
+          'Ao assinar, cliente e oficina confirmam que revisaram as informações deste documento e registram a decisão indicada na seção de autorização.'
+        ].forEach((texto) => lista.appendChild(criarNoDocumento(documento, 'li', '', texto)));
+        condicoes.appendChild(lista);
+
+        const assinaturas = criarNoDocumento(documento, 'section', 'signatures');
+        const assinaturaCliente = criarNoDocumento(documento, 'div', 'signature');
+        assinaturaCliente.append(
+          criarNoDocumento(documento, 'strong', '', textoDocumento(servico.nomeCliente, 'Cliente / responsável pelo veículo')),
+          criarNoDocumento(documento, 'span', '', 'Assinatura do cliente')
+        );
+        const assinaturaOficina = criarNoDocumento(documento, 'div', 'signature');
+        assinaturaOficina.append(
+          criarNoDocumento(documento, 'strong', '', nomeOficina),
+          criarNoDocumento(documento, 'span', '', 'Responsável pela oficina')
+        );
+        assinaturas.append(assinaturaCliente, assinaturaOficina);
+        pagina.appendChild(assinaturas);
+        pagina.appendChild(criarNoDocumento(documento, 'p', 'location-date', 'Local e data: _________________________________________________'));
+
+        const rodape = criarNoDocumento(documento, 'footer', 'document-footer');
+        rodape.append(
+          criarNoDocumento(documento, 'span', '', `Documento gerado pelo Auto+Assis · ${formatarDataDocumento(null, true)}`),
+          criarNoDocumento(documento, 'span', '', emitida ? numeroOs : `Protocolo SOL-${Number(servico.id)}`)
+        );
+        pagina.appendChild(rodape);
+
+        const imprimir = () => {
+          try {
+            janela.focus();
+            janela.print();
+          } catch (erro) {
+            console.error('Erro ao abrir impressão:', erro);
+            estadoImpressao.textContent = 'Não foi possível abrir a impressão automaticamente. Use Ctrl+P.';
+          }
+        };
+        botaoImprimir.addEventListener('click', imprimir);
+        botaoFechar.addEventListener('click', () => janela.close());
+        window.setTimeout(imprimir, 450);
+      } catch (erro) {
+        console.error('Erro ao montar a ordem de serviço:', erro);
+        janela.document.body.textContent = 'Não foi possível montar este documento. Feche esta janela e tente novamente.';
+        mostrarToast(erro.message || 'Não foi possível gerar a ordem de serviço. Tente novamente.', 'error');
+      }
+    }
+
+    function mostrarToast(texto, tipo = 'success') {
+      if (window.productUI?.notify) {
+        window.productUI.notify(texto, tipo);
+        return;
+      }
+      const toast = document.getElementById('toast');
+      toast.textContent = texto;
+      toast.classList.add('show');
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    document.getElementById('buscaServico').addEventListener('input', aplicarFiltros);
+    document.getElementById('filtroStatus').addEventListener('change', aplicarFiltros);
     carregarServicos();
-}
-        // ==========================================
-        // MÁGICA: FUNÇÃO DE GERAÇÃO DE PDF
-        // ==========================================
-        function gerarPDF(idServico) {
-            const servico = todosOsServicos.find(s => s.id === idServico);
-            if (!servico) return mostrarToast('Serviço não encontrado!');
-
-            const dataAtual = new Date().toLocaleDateString('pt-BR');
-
-            const elementoPDF = document.createElement('div');
-            elementoPDF.style.padding = '40px';
-            elementoPDF.style.background = '#ffffff';
-            elementoPDF.style.color = '#000000';
-            elementoPDF.style.fontFamily = 'Arial, sans-serif';
-            
-            elementoPDF.innerHTML = `
-                <div style="border-bottom: 2px solid #ff6a00; padding-bottom: 20px; margin-bottom: 20px; text-align: center;">
-                    <h1 style="color: #ff6a00; margin: 0; font-size: 28px;">Auto+Assis Oficina</h1>
-                    <p style="margin: 5px 0 0 0; color: #555; font-size: 14px;">CNPJ: 00.000.000/0001-00 | Telefone: (00) 0000-0000</p>
-                    <h2 style="margin-top: 15px; color: #333;">Ordem de Serviço Nº ${servico.id}</h2>
-                </div>
-                
-                <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 14px;">
-                    <tr>
-                        <td style="padding: 10px; border: 1px solid #ccc; background: #f9f9f9; width: 50%;"><strong>Cliente:</strong> ${servico.nomeCliente}</td>
-                        <td style="padding: 10px; border: 1px solid #ccc; background: #f9f9f9;"><strong>Data da Emissão:</strong> ${dataAtual}</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 10px; border: 1px solid #ccc;"><strong>Veículo:</strong> ${servico.veiculo}</td>
-                        <td style="padding: 10px; border: 1px solid #ccc;"><strong>Placa:</strong> ${servico.placa}</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 10px; border: 1px solid #ccc; background: #f9f9f9;"><strong>Urgência:</strong> ${servico.urgencia || 'Normal'}</td>
-                        <td style="padding: 10px; border: 1px solid #ccc; background: #f9f9f9;"><strong>Status Atual:</strong> ${servico.status}</td>
-                    </tr>
-                </table>
-
-                <div style="border: 1px solid #ccc; padding: 15px; border-radius: 5px; margin-bottom: 60px; min-height: 120px;">
-                    <h3 style="margin-top: 0; margin-bottom: 10px; color: #333; font-size: 16px;">Descrição do Problema Relatado:</h3>
-                    <p style="font-size: 14px; line-height: 1.5; color: #444;">${servico.problema}</p>
-                </div>
-
-                <div style="display: flex; justify-content: space-between; text-align: center; margin-top: 100px;">
-                    <div style="width: 45%;">
-                        <hr style="border: 1px solid #000; margin-bottom: 5px;">
-                        <p style="font-size: 14px; color: #333;">Assinatura do Cliente</p>
-                    </div>
-                    <div style="width: 45%;">
-                        <hr style="border: 1px solid #000; margin-bottom: 5px;">
-                        <p style="font-size: 14px; color: #333;">Assinatura do Responsável (Auto+Assis)</p>
-                    </div>
-                </div>
-            `;
-
-            const opcoes = {
-                margin:       10,
-                filename:     `OS_${servico.placa}_AutoAssis.pdf`,
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2 },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
-
-            html2pdf().set(opcoes).from(elementoPDF).save();
-        }
-
-        carregarServicos();
-    </script>
-
-  <div id="toast"></div>
-<script>
-
-function mostrarToast(texto) {
-    let toast = document.getElementById('toast');
-
-    if (!toast) {
-        toast = document.createElement('div');
-        toast.id = 'toast';
-        document.body.appendChild(toast);
-    }
-
-    toast.textContent = texto;
-    toast.classList.add('show');
-
-    clearTimeout(window.__toastTimer);
-    window.__toastTimer = setTimeout(() => {
-        toast.classList.remove('show');
-    }, 3000);
-}
-
-</script>
+  </script>
 </body>
 </html>

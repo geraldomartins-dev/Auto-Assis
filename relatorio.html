@@ -3,189 +3,330 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <script src="auth.js"></script>
+  <meta name="theme-color" content="#080b10">
+  <meta name="description" content="Relatórios operacionais e exportação de movimentações da oficina Auto+Assis.">
   <title>Relatórios — Auto+Assis</title>
+  <script src="auth.js"></script>
+  <link rel="stylesheet" href="product.css">
+  <script src="ui.js" defer></script>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
   <style>
-    :root{
-      --bg:#0a0a0a; --panel:#0f0f0f; --accent:#ff6a00; --white:#ffffff;
-      --muted:#cccccc; --success:#22c55e; --danger:#ff4d4d; --radius:12px;
-      --shadow:0 8px 30px rgba(0,0,0,0.6);
-      font-family:Inter,system-ui,sans-serif;
+    .report-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .report-metrics .metric-money { color: var(--success); }
+    .report-metrics .metric-movement .metric-icon {
+      border-color: rgba(97, 169, 255, .16);
+      background: rgba(97, 169, 255, .075);
+      color: var(--info);
     }
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{background:var(--bg);color:var(--white);font-family:Inter,sans-serif;}
-    .container{display:flex;height:100vh;}
-    aside{width:260px;background:var(--panel);padding:24px;display:flex;flex-direction:column;gap:18px;}
-    aside .logo{display:flex;align-items:center;gap:12px;font-weight:700;}
-    aside .logo .mark{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#ffa257);display:flex;align-items:center;justify-content:center;color:var(--bg);font-weight:800;}
-    aside nav{flex:1;display:flex;flex-direction:column;gap:12px;}
-    aside nav a{display:block;padding:10px 14px;border-radius:10px;color:var(--white);text-decoration:none;}
-    aside nav a.active, aside nav a:hover{background:rgba(255,106,0,0.2);color:var(--accent);}
-    main{flex:1;padding:24px;overflow-y:auto;}
-    .summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;margin-bottom:24px;}
-    .summary .card{background:var(--panel);padding:18px;border-radius:var(--radius);box-shadow:var(--shadow);}
-    .summary .value{font-size:32px;font-weight:700;margin-bottom:4px;}
-    .green{color:var(--success);}
-    .red{color:var(--danger);}
-    .filter{background:var(--panel);padding:18px;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:24px;}
-    .filter input{padding:10px;border-radius:8px;border:1px solid #333;background:#000;color:white;margin-right:10px;}
-    .filter button{padding:10px 20px;border:none;border-radius:8px;background:var(--accent);color:white;font-weight:bold;cursor:pointer;}
-  
-  * {
-    transition:
-        background 0.2s ease,
-        color 0.2s ease,
-        border 0.2s ease,
-        transform 0.2s ease,
-        box-shadow 0.2s ease;
-}
+    .report-metrics .metric-stock .metric-icon {
+      border-color: rgba(248, 193, 92, .16);
+      background: rgba(248, 193, 92, .075);
+      color: var(--warning);
+    }
 
-.card,
-.kpi-card,
-.servico-card,
-.peca-card {
-    box-shadow: 0 4px 20px rgba(0,0,0,0.25);
-}
+    .report-export { padding: 0; overflow: hidden; }
+    .report-export > .surface-header {
+      align-items: center;
+      padding: 22px 24px;
+      border-bottom: 1px solid var(--line);
+    }
+    .format-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 34px;
+      padding: 0 11px;
+      border: 1px solid rgba(49, 208, 170, .14);
+      border-radius: 999px;
+      background: rgba(49, 208, 170, .05);
+      color: #83d8c3;
+      font-size: 10px;
+      font-weight: 760;
+      letter-spacing: .04em;
+    }
+    .format-chip::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 0 4px rgba(49, 208, 170, .08);
+    }
+    .report-export-body { padding: 24px; }
+    .report-fields {
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) auto;
+      align-items: end;
+      gap: 13px;
+    }
+    .report-field { display: grid; gap: 7px; min-width: 0; }
+    .report-field label {
+      color: #8e9bad !important;
+      font-size: 11px;
+      font-weight: 720 !important;
+      letter-spacing: .025em;
+    }
+    .report-field input { width: 100%; }
+    #downloadBtn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-width: 188px;
+      border: 0;
+      background: linear-gradient(100deg, #ff6a12, #ff9a50);
+      color: #17100c;
+      box-shadow: 0 10px 24px rgba(255, 106, 18, .18);
+      cursor: pointer;
+    }
+    #downloadBtn svg {
+      width: 16px;
+      height: 16px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .export-guidance {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+    }
+    .export-guidance div {
+      display: grid;
+      grid-template-columns: 30px minmax(0, 1fr);
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .export-step {
+      display: grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: rgba(255, 255, 255, .025);
+      color: var(--accent-2);
+      font-size: 10px;
+      font-weight: 850;
+    }
+    .export-guidance strong,
+    .export-guidance small { display: block; }
+    .export-guidance strong { color: #cdd5e0; font-size: 11px; }
+    .export-guidance small { margin-top: 3px; color: #6f7c90; font-size: 10px; line-height: 1.4; }
 
-.card:hover,
-.kpi-card:hover,
-.servico-card:hover,
-.peca-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 28px rgba(255,106,0,0.15);
-}
-
-button {
-    transition: all .2s ease;
-}
-
-button:hover {
-    transform: scale(1.03);
-    filter: brightness(1.08);
-}
-
-button:active {
-    transform: scale(0.98);
-}
-  
+    @media (max-width: 980px) {
+      .report-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    @media (max-width: 820px) {
+      .report-metrics { grid-template-columns: 1fr; }
+      .report-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      #downloadBtn { grid-column: 1 / -1; width: 100%; }
+      .export-guidance { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 560px) {
+      .report-export > .surface-header { align-items: flex-start; flex-direction: column; }
+      .report-export-body { padding: 18px; }
+      .report-fields { grid-template-columns: 1fr; }
+      #downloadBtn { grid-column: auto; }
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <aside>
-      <div class="logo"><span class="mark">A+</span> Auto+Assis</div>
-      <nav>
-        <a href="dashboard.html">Dashboard</a>
-        <a href="estoque.html">Estoque</a>
-        <a href="movimentacao.html">Movimentações</a>
-        <a href="servicos.html">Serviços</a>
-        <a href="relatorio.html" class="active">Relatórios</a>
-        <a href="consultas.html">Consultas Rápidas</a>
-      </nav>
-      
-      <button onclick="window.location.href='login.html'" style="background:rgba(255,77,77,0.2); color:#ff4d4d; border:none; padding:10px; border-radius:10px; cursor:pointer;">Sair</button>
-    </aside>
+  <aside>
+    <div class="logo"><span class="mark">A+</span><span>Auto+Assis</span></div>
+    <div class="workspace-label"><span class="workspace-dot"></span><span><small>AMBIENTE</small>Oficina principal</span></div>
+    <nav>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="estoque.html">Estoque</a>
+      <a href="movimentacao.html">Movimentações</a>
+      <a href="servicos.html">Serviços</a>
+      <a href="relatorio.html" class="active">Relatórios</a>
+      <a href="consultas.html">Consultas rápidas</a>
+      <a href="gerentes.html">Gerentes</a>
+    </nav>
+    <div class="user profile-card">
+      <div class="profile-avatar" id="avatarGerenteRelatorio">G</div>
+      <div><strong id="nomeGerenteRelatorio">Gerente</strong><small>Administrador</small></div>
+    </div>
+    <button id="sairBtnRelatorio" type="button">Sair da conta</button>
+  </aside>
 
-    <main>
-      <h1>Relatórios e Estatísticas</h1>
-      <p>Dados reais extraídos do banco de dados</p>
+  <main>
+    <section class="page-heading">
+      <div>
+        <span class="page-overline">INTELIGÊNCIA OPERACIONAL</span>
+        <h1>Relatórios e estatísticas</h1>
+        <p>Transforme os dados da oficina em indicadores claros e históricos auditáveis.</p>
+      </div>
+      <div class="page-actions">
+        <span class="live-indicator"><i></i>Dados consolidados</span>
+      </div>
+    </section>
 
-      <div class="summary">
-        <div class="card">
-          <h3>Faturamento (OS)</h3>
-          <div class="value green" id="faturamentoTotal">R$ 0,00</div>
-          <div class="sub">Total de serviços concluídos</div>
+    <section class="metric-grid report-metrics" aria-label="Resumo dos relatórios">
+      <article class="metric-card metric-revenue">
+        <div class="metric-top">
+          <span class="metric-icon metric-currency" aria-hidden="true">R$</span>
+          <span class="metric-label">Faturamento concluído</span>
         </div>
-        <div class="card">
-          <h3>Movimentações do Dia</h3>
-          <div class="value" id="totalMov">0</div>
-          <div class="sub">Entradas e saídas hoje</div>
+        <strong class="metric-value metric-money" id="faturamentoTotal" aria-live="polite">R$ 0,00</strong>
+        <div class="metric-foot"><span class="trend trend-positive">Ordens finalizadas</span><span>total</span></div>
+      </article>
+
+      <article class="metric-card metric-movement">
+        <div class="metric-top">
+          <span class="metric-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M7 7h11l-3-3m3 3-3 3M17 17H6l3 3m-3-3 3-3"/></svg>
+          </span>
+          <span class="metric-label">Movimentações do dia</span>
         </div>
-        <div class="card">
-          <h3>Peças em Estoque</h3>
-          <div class="value" id="totalPecas">0</div>
-          <div class="sub">Unidades totais</div>
+        <strong class="metric-value" id="totalMov" aria-live="polite">0</strong>
+        <div class="metric-foot"><span class="trend trend-info">Entradas e saídas</span><span>hoje</span></div>
+      </article>
+
+      <article class="metric-card metric-stock">
+        <div class="metric-top">
+          <span class="metric-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="m4 7 8-4 8 4-8 4-8-4Z"/><path d="m4 7 8 4 8-4M4 12l8 4 8-4M4 17l8 4 8-4"/></svg>
+          </span>
+          <span class="metric-label">Peças em estoque</span>
+        </div>
+        <strong class="metric-value" id="totalPecas" aria-live="polite">0</strong>
+        <div class="metric-foot"><span class="trend trend-warning">Inventário atual</span><span>unidades</span></div>
+      </article>
+    </section>
+
+    <section class="product-surface report-export" aria-labelledby="exportTitle">
+      <header class="surface-header">
+        <div>
+          <span class="surface-eyebrow">EXPORTAÇÃO</span>
+          <h2 id="exportTitle">Histórico de movimentações</h2>
+          <p>Escolha um período para gerar um arquivo compatível com Excel e sistemas contábeis.</p>
+        </div>
+        <span class="format-chip">CSV UTF-8</span>
+      </header>
+
+      <div class="report-export-body">
+        <div class="report-fields">
+          <div class="report-field">
+            <label for="dataInicio">Data inicial</label>
+            <input type="date" id="dataInicio">
+          </div>
+          <div class="report-field">
+            <label for="dataFim">Data final</label>
+            <input type="date" id="dataFim">
+          </div>
+          <button id="downloadBtn" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/></svg>
+            Baixar relatório
+          </button>
+        </div>
+
+        <div class="export-guidance" aria-label="Informações sobre a exportação">
+          <div><span class="export-step">01</span><span><strong>Defina o período</strong><small>Use datas inicial e final para delimitar a análise.</small></span></div>
+          <div><span class="export-step">02</span><span><strong>Gere o arquivo</strong><small>O histórico é consolidado automaticamente.</small></span></div>
+          <div><span class="export-step">03</span><span><strong>Analise com liberdade</strong><small>Abra o CSV no Excel ou em outra ferramenta.</small></span></div>
         </div>
       </div>
-
-      <div class="filter">
-        <h3>Exportar Histórico de Movimentações (CSV)</h3>
-        <p style="font-size: 0.8em; color: #888; margin-bottom: 10px;">Selecione o período para baixar o arquivo.</p>
-        <input type="date" id="dataInicio">
-        <input type="date" id="dataFim">
-        <button id="downloadBtn">📄 Baixar Relatório</button>
-      </div>
-    </main>
-  </div>
+    </section>
+  </main>
 
   <script>
+    const usuarioRelatorio = window.apiAuth.getUsuario() || { nome: 'Gerente' };
+    const nomeRelatorio = usuarioRelatorio.nome || 'Gerente';
+    document.getElementById('nomeGerenteRelatorio').textContent = nomeRelatorio;
+    document.getElementById('avatarGerenteRelatorio').textContent = nomeRelatorio.trim().charAt(0).toUpperCase() || 'G';
+    document.getElementById('sairBtnRelatorio').addEventListener('click', () => window.apiAuth.logout());
+
     // Configura datas padrão (Início do mês até hoje)
     const hoje = new Date().toISOString().split('T')[0];
     document.getElementById('dataFim').value = hoje;
 
     async function carregarRelatorios() {
-        try {
-            // 1. Buscar Solicitações para Faturamento
-            const resSoli = await fetch('http://localhost:3000/api/solicitacoes');
-            const solicitacoes = await resSoli.json();
-            
-            // MUDANÇA APENAS AQUI: Lógica de soma blindada
-            const concluido = solicitacoes.filter(s => s.status === 'Concluído');
-            const total = concluido.reduce((acc, s) => {
-                const valorNum = parseFloat(s.custoSugerido);
-                return acc + (isNaN(valorNum) ? 0 : valorNum);
-            }, 0);
-            
-            document.getElementById('faturamentoTotal').textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
+      try {
+        // 1. Buscar Solicitações para Faturamento
+        const resSoli = await fetch('/api/solicitacoes');
+        const solicitacoes = await resSoli.json();
 
-            // 2. Buscar Movimentações do Dia
-            const resMov = await fetch('http://localhost:3000/api/movimentacoes');
-            const movimentacoes = await resMov.json();
-            
-            const movHoje = movimentacoes.filter(m => m.data.startsWith(hoje));
-            document.getElementById('totalMov').textContent = movHoje.length;
+        // Lógica de soma blindada para valores ausentes ou inválidos
+        const concluido = solicitacoes.filter(s => s.status === 'Concluído');
+        const total = concluido.reduce((acc, s) => {
+          const valorNum = parseFloat(s.custoSugerido);
+          return acc + (isNaN(valorNum) ? 0 : valorNum);
+        }, 0);
 
-            // 3. Buscar Estoque Total
-            const resPecas = await fetch('http://localhost:3000/api/pecas');
-            const pecas = await resPecas.json();
-            const unidades = pecas.reduce((acc, p) => acc + parseInt(p.quantidade), 0);
-            document.getElementById('totalPecas').textContent = unidades;
+        document.getElementById('faturamentoTotal').textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
 
-        } catch (erro) {
-            console.error("Erro ao carregar relatórios:", erro);
-        }
+        // 2. Buscar Movimentações do Dia
+        const resMov = await fetch('/api/movimentacoes');
+        const movimentacoes = await resMov.json();
+
+        const movHoje = movimentacoes.filter(m => m.data.startsWith(hoje));
+        document.getElementById('totalMov').textContent = movHoje.length;
+
+        // 3. Buscar Estoque Total
+        const resPecas = await fetch('/api/pecas');
+        const pecas = await resPecas.json();
+        const unidades = pecas.reduce((acc, p) => acc + parseInt(p.quantidade), 0);
+        document.getElementById('totalPecas').textContent = unidades;
+      } catch (erro) {
+        console.error('Erro ao carregar relatórios:', erro);
+      }
     }
 
     // Função de Download CSV
-    document.getElementById("downloadBtn").addEventListener("click", async () => {
-        const dInicio = document.getElementById('dataInicio').value;
-        const dFim = document.getElementById('dataFim').value;
+    document.getElementById('downloadBtn').addEventListener('click', async () => {
+      const dInicio = document.getElementById('dataInicio').value;
+      const dFim = document.getElementById('dataFim').value;
 
-        if (!dInicio || !dFim) return alert("Selecione as datas.");
+      if (!dInicio || !dFim) return alert('Selecione as datas.');
 
-        try {
-            const res = await fetch('http://localhost:3000/api/movimentacoes');
-            const movimentacoes = await res.json();
+      try {
+        const res = await fetch('/api/movimentacoes');
+        const movimentacoes = await res.json();
 
-            const filtradas = movimentacoes.filter(m => {
-                const dataMov = m.data.split('T')[0];
-                return dataMov >= dInicio && dataMov <= dFim;
-            });
+        const filtradas = movimentacoes.filter(m => {
+          const dataMov = m.data.split('T')[0];
+          return dataMov >= dInicio && dataMov <= dFim;
+        });
 
-            if (filtradas.length === 0) return alert("Nenhuma movimentação neste período.");
+        if (filtradas.length === 0) return alert('Nenhuma movimentação neste período.');
 
-           let csv = "ID da Movimentação;Tipo;Nome da Peça;Quantidade;Data;Observações\n";
-filtradas.forEach(m => {
-    csv += `${m.id};${m.tipo.toUpperCase()};${m.nome_peca};${m.quantidade};${m.data};${m.obs || ''}\n`;
-});
+        const campoCsv = (valor) => {
+          let texto = String(valor ?? '').replace(/\r?\n/g, ' ').trim();
+          // Evita que Excel/LibreOffice interpretem dados da oficina como fórmula.
+          if (/^[=+\-@]/.test(texto)) texto = `'${texto}`;
+          return `"${texto.replace(/"/g, '""')}"`;
+        };
+        const linhas = [
+          ['ID da Movimentação', 'Tipo', 'Nome da Peça', 'Quantidade', 'Data', 'Observações'],
+          ...filtradas.map((m) => [
+            m.id,
+            String(m.tipo || '').toUpperCase(),
+            m.nome_peca || m.pecaNome || '',
+            m.quantidade,
+            m.data,
+            m.obs || ''
+          ])
+        ];
+        const csv = `${linhas.map((linha) => linha.map(campoCsv).join(';')).join('\n')}\n`;
 
-            const blob = new Blob(["\ufeff", csv], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `Relatorio_AutoAssis_${dInicio}_a_${dFim}.csv`;
-            a.click();
-        } catch (e) { alert("Erro ao gerar CSV"); }
+        const blob = new Blob(['\ufeff', csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Relatorio_AutoAssis_${dInicio}_a_${dFim}.csv`;
+        a.click();
+      } catch (e) {
+        alert('Erro ao gerar CSV');
+      }
     });
 
     carregarRelatorios();

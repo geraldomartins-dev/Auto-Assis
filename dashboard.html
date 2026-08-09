@@ -1,269 +1,286 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <script src="auth.js"></script>
-    <title>Dashboard — Auto+Assis</title>
-    <style>
-        :root{ --bg:#0a0a0a; --panel:#0f0f0f; --accent:#ff6a00; --white:#ffffff; --muted:#cccccc; --success:#22c55e; --danger:#ff4d4d; --radius:12px; font-family:Inter,sans-serif; }
-        *{box-sizing:border-box;margin:0;padding:0}
-        body{background:var(--bg);color:var(--white);display:flex;height:100vh;}
-        aside{width:260px;background:var(--panel);padding:24px;display:flex;flex-direction:column;gap:18px; border-right: 1px solid #1a1a1a;}
-        aside .logo{display:flex;align-items:center;gap:12px;font-weight:700;}
-        aside .logo .mark{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#ffa257);display:flex;align-items:center;justify-content:center;color:var(--bg);font-weight:800;}
-        aside nav{flex:1;display:flex;flex-direction:column;gap:12px;}
-        aside nav a{display:block;padding:10px 14px;border-radius:10px;color:var(--white); text-decoration:none;}
-        aside nav a.active, aside nav a:hover{background:rgba(255,106,0,0.2); color:var(--accent);}
-        main{flex:1;padding:30px;overflow-y:auto;}
-        
-        .header { margin-bottom: 30px; }
-        .header h1 { color: var(--white); margin-bottom: 5px; }
-        .header p { color: var(--muted); }
-
-        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .kpi-card { background: var(--panel); padding: 20px; border-radius: var(--radius); border: 1px solid #1a1a1a; display: flex; flex-direction: column; justify-content: center; }
-        .kpi-card h3 { color: var(--white); font-size: 1rem; margin-bottom: 10px; }
-        .kpi-card .value { font-size: 2.2rem; font-weight: bold; margin-bottom: 5px; }
-        .kpi-card .subtitle { color: var(--muted); font-size: 0.85rem; }
-        
-        .valor-estoque { color: var(--success); }
-
-        .content-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
-        .box { background: var(--panel); padding: 20px; border-radius: var(--radius); border: 1px solid #1a1a1a; }
-        .box h3 { margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #333; }
-        
-        .list-item { padding: 10px 0; border-bottom: 1px solid #222; font-size: 0.9em; }
-        .list-item:last-child { border-bottom: none; }
-        .empty-msg { color: var(--muted); font-style: italic; text-align: center; padding: 20px; }
-    
-        * {
-    transition:
-        background 0.2s ease,
-        color 0.2s ease,
-        border 0.2s ease,
-        transform 0.2s ease,
-        box-shadow 0.2s ease;
-}
-
-.card,
-.kpi-card,
-.servico-card,
-.peca-card {
-    box-shadow: 0 4px 20px rgba(0,0,0,0.25);
-}
-
-.card:hover,
-.kpi-card:hover,
-.servico-card:hover,
-.peca-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 28px rgba(255,106,0,0.15);
-}
-
-button {
-    transition: all .2s ease;
-}
-
-button:hover {
-    transform: scale(1.03);
-    filter: brightness(1.08);
-}
-
-button:active {
-    transform: scale(0.98);
-}
-
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#080b10">
+  <title>Visão geral — Auto+Assis</title>
+  <script src="auth.js"></script>
+  <link rel="stylesheet" href="product.css">
+  <script src="ui.js" defer></script>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
 </head>
 <body>
-    <aside>
-        <div class="logo"><span class="mark">A+</span> Auto+Assis</div>
-        <nav>
-            <a href="dashboard.html" class="active">Dashboard</a>
-            <a href="estoque.html">Estoque</a>
-            <a href="movimentacao.html">Movimentações</a>
-            <a href="servicos.html">Serviços</a>
-            <a href="relatorio.html">Relatórios</a>
-        <a href="consultas.html">Consultas Rápidas</a>
-        </nav>
-        <div style="margin-top:auto; background: #1a1a1a; padding: 15px; border-radius: 10px; text-align: center;">
-            <strong id="nomeGerente">Administrador</strong><br>
-            <small style="color:var(--muted)">Gerente</small>
-        </div>
-        <button onclick="fazerLogoff()" style="margin-top:10px; padding:10px; border:none; border-radius:10px; background:rgba(255,77,77,0.2); color:var(--danger); cursor:pointer;">Sair</button>
-    </aside>
+  <aside>
+    <div class="logo"><span class="mark">A+</span><span>Auto+Assis</span></div>
+    <div class="workspace-label"><span class="workspace-dot"></span><span><small>AMBIENTE</small>Oficina principal</span></div>
+    <nav>
+      <a href="dashboard.html" class="active">Dashboard</a>
+      <a href="estoque.html">Estoque</a>
+      <a href="movimentacao.html">Movimentações</a>
+      <a href="servicos.html">Serviços</a>
+      <a href="relatorio.html">Relatórios</a>
+      <a href="consultas.html">Consultas rápidas</a>
+      <a href="gerentes.html">Gerentes</a>
+    </nav>
+    <div class="user profile-card">
+      <div class="profile-avatar" id="avatarGerente">G</div>
+      <div><strong id="nomeGerente">Gerente</strong><small>Administrador</small></div>
+    </div>
+    <button type="button" onclick="window.apiAuth.logout()">Sair da conta</button>
+  </aside>
 
-    <main>
-        <div class="header">
-            <h1 id="boasVindas">Bem-vindo, Administrador!</h1>
-            <p>Gerente - Visão geral da oficina em tempo real</p>
-        </div>
+  <main>
+    <section class="page-heading dashboard-heading">
+      <div>
+        <span class="page-overline">CENTRAL OPERACIONAL</span>
+        <h1 id="boasVindas">Bom dia, Gerente</h1>
+        <p>Indicadores essenciais da sua oficina, atualizados em tempo real.</p>
+      </div>
+      <div class="page-actions">
+        <span class="live-indicator"><i></i>Dados sincronizados</span>
+        <button class="button-secondary" type="button" onclick="location.href='novamovimentacao.html'">Registrar movimentação</button>
+        <button class="button-primary manager-only" data-manager-only type="button" onclick="location.href='novaos.html'">+ Nova ordem de serviço</button>
+      </div>
+    </section>
 
-        <div class="kpi-grid">
-            <div class="kpi-card">
-                <h3>Total de Peças</h3>
-                <div class="value" id="valTotalPecas">0</div>
-                <div class="subtitle" id="valAlertaPecas">0 em alerta</div>
-            </div>
-            <div class="kpi-card">
-                <h3>Valor do Estoque</h3>
-                <div class="value valor-estoque" id="valEstoque">R$ 0.00</div>
-            </div>
-            <div class="kpi-card">
-                <h3>Movimentações Hoje</h3>
-                <div class="value" id="valMovHoje">0</div>
-                <div class="subtitle" id="valDetalheMov">0 entradas, 0 saídas</div>
-            </div>
-            <div class="kpi-card">
-                <h3>Serviços Ativos</h3>
-                <div class="value" id="valServicos">0</div>
-            </div>
-        </div>
+    <section class="metric-grid" aria-label="Indicadores da oficina">
+      <article class="metric-card metric-inventory">
+        <div class="metric-top"><span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m4 7 8-4 8 4-8 4-8-4Z"/><path d="m4 7 8 4 8-4M4 12l8 4 8-4M4 17l8 4 8-4"/></svg></span><span class="metric-label">Itens em estoque</span></div>
+        <strong class="metric-value" id="valTotalPecas">—</strong>
+        <div class="metric-foot"><span class="trend trend-warning" id="valAlertaPecas">Carregando alertas</span><span>unidades</span></div>
+      </article>
+      <article class="metric-card metric-value-card">
+        <div class="metric-top"><span class="metric-icon metric-currency" aria-hidden="true">R$</span><span class="metric-label">Valor imobilizado</span></div>
+        <strong class="metric-value metric-money" id="valEstoque">—</strong>
+        <div class="metric-foot"><span class="trend trend-positive">Estoque valorizado</span><span>custo atual</span></div>
+      </article>
+      <article class="metric-card">
+        <div class="metric-top"><span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 7h11l-3-3m3 3-3 3M17 17H6l3 3m-3-3 3-3"/></svg></span><span class="metric-label">Movimentações hoje</span></div>
+        <strong class="metric-value" id="valMovHoje">—</strong>
+        <div class="metric-foot"><span id="valDetalheMov">Carregando fluxo</span><span>hoje</span></div>
+      </article>
+      <article class="metric-card">
+        <div class="metric-top"><span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5-5L12 3.6 8.4 7.2 6.1 4.9a4 4 0 0 0 5 5L19 17.8a1.7 1.7 0 0 1-2.4 2.4l-7.9-7.9a4 4 0 0 0-5-5L6 9.6 9.6 6 7.3 3.7"/></svg></span><span class="metric-label">Serviços ativos</span></div>
+        <strong class="metric-value" id="valServicos">—</strong>
+        <div class="metric-foot"><span class="trend trend-info" id="valAguardando">Em operação</span><span>ordens</span></div>
+      </article>
+    </section>
 
-        <div class="content-grid">
-            <div class="box">
-                <h3>Movimentações Recentes</h3>
-                <div id="listaMovimentacoes">
-                    <p class="empty-msg">Carregando dados...</p>
-                </div>
-            </div>
-            <div class="box">
-                <h3>Categorias de Estoque</h3>
-                <div id="listaCategorias">
-                    <p class="empty-msg">Carregando dados...</p>
-                </div>
-            </div>
+    <section class="dashboard-grid dashboard-grid-top">
+      <article class="product-surface chart-surface">
+        <header class="surface-header">
+          <div><span class="surface-eyebrow">MOVIMENTAÇÃO</span><h2>Fluxo do estoque</h2><p>Entradas e saídas nos últimos sete dias</p></div>
+          <div class="chart-legend"><span><i class="legend-entry"></i>Entradas</span><span><i class="legend-exit"></i>Saídas</span></div>
+        </header>
+        <div class="bar-chart" id="movChart" aria-label="Gráfico de movimentações dos últimos sete dias">
+          <div class="chart-loading">Preparando visualização…</div>
         </div>
-    </main>
+      </article>
 
-    <script>
-        function fazerLogoff() {
-            window.apiAuth.logout();
+      <article class="product-surface health-surface">
+        <header class="surface-header"><div><span class="surface-eyebrow">INVENTÁRIO</span><h2>Saúde do estoque</h2><p>Cobertura em relação ao mínimo</p></div></header>
+        <div class="health-content">
+          <div class="health-ring" id="healthRing"><div><strong id="healthPercent">—</strong><span>saudável</span></div></div>
+          <div class="health-stats">
+            <div><span class="health-bullet healthy"></span><p><strong id="healthyCount">—</strong><small>Itens regulares</small></p></div>
+            <div><span class="health-bullet attention"></span><p><strong id="warningCount">—</strong><small>Pedem atenção</small></p></div>
+            <a href="estoque.html">Ver inventário completo <span>→</span></a>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="dashboard-grid dashboard-grid-bottom">
+      <article class="product-surface activity-surface">
+        <header class="surface-header compact"><div><span class="surface-eyebrow">ATIVIDADE</span><h2>Movimentações recentes</h2></div><a href="movimentacao.html">Ver todas →</a></header>
+        <div class="activity-list" id="listaMovimentacoes"><div class="empty-state">Carregando atividade…</div></div>
+      </article>
+      <article class="product-surface pipeline-surface">
+        <header class="surface-header compact"><div><span class="surface-eyebrow">ATENDIMENTO</span><h2>Fluxo de serviços</h2></div><a href="servicos.html">Gerenciar →</a></header>
+        <div class="pipeline-list" id="servicePipeline"><div class="empty-state">Carregando serviços…</div></div>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    const moeda = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+    const dataCurta = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' });
+
+    function apenasData(valor) {
+      return String(valor || '').split('T')[0];
+    }
+
+    function saudacao() {
+      const hora = new Date().getHours();
+      return hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
+    }
+
+    function numeroSeguro(valor, padrao = 0) {
+      const numero = Number(valor);
+      return Number.isFinite(numero) ? numero : padrao;
+    }
+
+    function quantidadeSegura(valor) {
+      return Math.max(0, numeroSeguro(valor));
+    }
+
+    function idSeguro(valor) {
+      const id = Number(valor);
+      return Number.isSafeInteger(id) && id > 0 ? id : null;
+    }
+
+    function textoSeguro(valor, padrao = '', limite = 120) {
+      const texto = typeof valor === 'string' ? valor.trim() : '';
+      return (texto || padrao).slice(0, limite);
+    }
+
+    function criarElemento(tag, classe, texto) {
+      const elemento = document.createElement(tag);
+      if (classe) elemento.className = classe;
+      if (texto !== undefined) elemento.textContent = texto;
+      return elemento;
+    }
+
+    function renderChart(movs) {
+      const dias = Array.from({ length: 7 }, (_, indice) => {
+        const data = new Date();
+        data.setHours(12, 0, 0, 0);
+        data.setDate(data.getDate() - (6 - indice));
+        const iso = data.toISOString().slice(0, 10);
+        const doDia = movs.filter((mov) => apenasData(mov.data) === iso);
+        return {
+          rotulo: data.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', ''),
+          entradas: doDia.filter((mov) => String(mov.tipo).toLowerCase().includes('entrada')).reduce((soma, mov) => soma + quantidadeSegura(mov.quantidade), 0),
+          saidas: doDia.filter((mov) => !String(mov.tipo).toLowerCase().includes('entrada')).reduce((soma, mov) => soma + quantidadeSegura(mov.quantidade), 0)
+        };
+      });
+      const maximo = Math.max(1, ...dias.flatMap((dia) => [dia.entradas, dia.saidas]));
+      const fragmento = document.createDocumentFragment();
+
+      dias.forEach((dia) => {
+        const coluna = criarElemento('div', 'chart-column');
+        const barras = criarElemento('div', 'chart-bars');
+        const entrada = criarElemento('i', 'bar bar-entry');
+        const saida = criarElemento('i', 'bar bar-exit');
+        const alturaEntrada = Math.min(100, Math.max(4, dia.entradas / maximo * 100));
+        const alturaSaida = Math.min(100, Math.max(4, dia.saidas / maximo * 100));
+
+        entrada.style.height = `${alturaEntrada}%`;
+        entrada.title = `${dia.entradas} entradas`;
+        saida.style.height = `${alturaSaida}%`;
+        saida.title = `${dia.saidas} saídas`;
+        barras.append(entrada, saida);
+        coluna.append(barras, criarElemento('span', '', dia.rotulo));
+        fragmento.appendChild(coluna);
+      });
+
+      document.getElementById('movChart').replaceChildren(fragmento);
+    }
+
+    function renderRecentes(movs) {
+      const recentes = [...movs].sort((a, b) => apenasData(b.data).localeCompare(apenasData(a.data)) || Number(b.id) - Number(a.id)).slice(0, 5);
+      const container = document.getElementById('listaMovimentacoes');
+      if (!recentes.length) {
+        container.replaceChildren(criarElemento('div', 'empty-state', 'Nenhuma movimentação registrada.'));
+        return;
+      }
+
+      const fragmento = document.createDocumentFragment();
+      recentes.forEach((mov) => {
+        const entrada = String(mov.tipo).toLowerCase().includes('entrada');
+        const data = new Date(`${apenasData(mov.data)}T12:00:00`);
+        const linha = criarElemento('div', 'activity-row');
+        const icone = criarElemento('span', `activity-icon ${entrada ? 'entry' : 'exit'}`, entrada ? '↓' : '↑');
+        const descricao = document.createElement('div');
+        const quantidade = quantidadeSegura(mov.quantidade);
+        const pecaId = idSeguro(mov.pecaId);
+        const nomePeca = textoSeguro(mov.nome_peca, pecaId ? `Peça #${pecaId}` : 'Peça não identificada');
+        const titulo = criarElemento('strong', '', `${entrada ? 'Entrada' : 'Saída'} de ${quantidade} unidade(s)`);
+        const detalhe = criarElemento('small', '', nomePeca);
+        const horario = criarElemento('time', '', Number.isNaN(data.getTime()) ? '—' : dataCurta.format(data));
+
+        descricao.append(titulo, detalhe);
+        linha.append(icone, descricao, horario);
+        fragmento.appendChild(linha);
+      });
+      container.replaceChildren(fragmento);
+    }
+
+    function renderPipeline(solicitacoes) {
+      const grupos = [
+        ['Aguardando', solicitacoes.filter((s) => ['Pendente', 'Em Análise', 'Aguardando Aprovação'].includes(s.status)).length, 'waiting'],
+        ['Em execução', solicitacoes.filter((s) => ['Aprovado', 'Em Andamento'].includes(s.status)).length, 'running'],
+        ['Concluídos', solicitacoes.filter((s) => s.status === 'Concluído').length, 'done']
+      ];
+      const total = Math.max(1, ...grupos.map((grupo) => grupo[1]));
+      const fragmento = document.createDocumentFragment();
+
+      grupos.forEach(([nome, valor, classe]) => {
+        const linha = criarElemento('div', 'pipeline-row');
+        const resumo = document.createElement('div');
+        const trilha = criarElemento('div', 'pipeline-track');
+        const progresso = criarElemento('i', classe);
+        progresso.style.width = `${Math.min(100, Math.max(0, valor / total * 100))}%`;
+        resumo.append(criarElemento('span', '', nome), criarElemento('strong', '', String(valor)));
+        trilha.appendChild(progresso);
+        linha.append(resumo, trilha);
+        fragmento.appendChild(linha);
+      });
+
+      document.getElementById('servicePipeline').replaceChildren(fragmento);
+    }
+
+    async function carregarDashboard() {
+      try {
+        const respostas = await Promise.all(['/api/pecas', '/api/movimentacoes', '/api/solicitacoes'].map((url) => fetch(url)));
+        if (respostas.some((resposta) => !resposta.ok)) throw new Error('Não foi possível carregar os indicadores.');
+        const [pecas, movs, solicitacoes] = await Promise.all(respostas.map((resposta) => resposta.json()));
+        if (![pecas, movs, solicitacoes].every(Array.isArray)) {
+          throw new Error('Resposta inválida do servidor.');
         }
 
-        async function carregarDashboard() {
-            try {
-                const [resPecas, resMov, resSoli] = await Promise.all([
-                    fetch('http://localhost:3000/api/pecas'),
-                    fetch('http://localhost:3000/api/movimentacoes'),
-                    fetch('http://localhost:3000/api/solicitacoes')
-                ]);
+        const totalUnidades = pecas.reduce((soma, peca) => soma + quantidadeSegura(peca.quantidade), 0);
+        const valorEstoque = pecas.reduce((soma, peca) => soma + quantidadeSegura(peca.quantidade) * Math.max(0, numeroSeguro(peca.preco)), 0);
+        const alertas = pecas.filter((peca) => quantidadeSegura(peca.quantidade) <= Math.max(0, numeroSeguro(peca.min)));
+        const regulares = pecas.length - alertas.length;
+        const percentual = pecas.length ? Math.round(regulares / pecas.length * 100) : 100;
+        const hoje = new Date().toISOString().slice(0, 10);
+        const hojeMovs = movs.filter((mov) => apenasData(mov.data) === hoje);
+        const entradasHoje = hojeMovs.filter((mov) => String(mov.tipo).toLowerCase().includes('entrada')).length;
+        const saidasHoje = hojeMovs.length - entradasHoje;
+        const ativos = solicitacoes.filter((s) => !['Concluído', 'Rejeitado'].includes(s.status));
+        const aguardando = solicitacoes.filter((s) => s.status === 'Aguardando Aprovação').length;
 
-                const pecas = await resPecas.json();
-                const movs = await resMov.json();
-                const solis = await resSoli.json();
+        document.getElementById('valTotalPecas').textContent = totalUnidades.toLocaleString('pt-BR');
+        document.getElementById('valAlertaPecas').textContent = `${alertas.length} ${alertas.length === 1 ? 'item em alerta' : 'itens em alerta'}`;
+        document.getElementById('valEstoque').textContent = moeda.format(valorEstoque);
+        document.getElementById('valMovHoje').textContent = hojeMovs.length;
+        document.getElementById('valDetalheMov').textContent = `${entradasHoje} entrada(s) · ${saidasHoje} saída(s)`;
+        document.getElementById('valServicos').textContent = ativos.length;
+        document.getElementById('valAguardando').textContent = aguardando ? `${aguardando} aguardando aprovação` : 'Fluxo em dia';
+        document.getElementById('healthPercent').textContent = `${percentual}%`;
+        document.getElementById('healthyCount').textContent = regulares;
+        document.getElementById('warningCount').textContent = alertas.length;
+        document.getElementById('healthRing').style.setProperty('--health', `${percentual * 3.6}deg`);
 
-                // 1. SERVIÇOS ATIVOS
-                const ativos = solis.filter(s => s.status !== 'Concluído' && s.status !== 'Rejeitado');
-                document.getElementById('valServicos').textContent = ativos.length;
+        renderChart(movs);
+        renderRecentes(movs);
+        renderPipeline(solicitacoes);
+      } catch (error) {
+        console.error(error);
+        const mensagemPublica = 'Não foi possível carregar os indicadores. Tente atualizar a página.';
+        document.querySelectorAll('.chart-loading, .empty-state').forEach((elemento) => elemento.textContent = mensagemPublica);
+      }
+    }
 
-                // 2. ESTOQUE
-                let totalQtd = 0;
-                let valorTotal = 0;
-                let emAlerta = 0;
-                const categorias = {};
-
-                pecas.forEach(p => {
-                    const qtd = Number(p.quantidade) || 0;
-                    const preco = Number(p.preco) || 0;
-                    const min = Number(p.min) || 0;
-
-                    totalQtd += qtd;
-                    valorTotal += (qtd * preco);
-                    if (qtd <= min) emAlerta++;
-
-                    if (!categorias[p.categoria]) categorias[p.categoria] = 0;
-                    categorias[p.categoria]++;
-                });
-
-                document.getElementById('valTotalPecas').textContent = totalQtd;
-                document.getElementById('valAlertaPecas').textContent = `${emAlerta} peças abaixo do mínimo`;
-                document.getElementById('valEstoque').textContent = `R$ ${valorTotal.toFixed(2)}`;
-
-                // 3. LÓGICA DE MOVIMENTAÇÕES DE HOJE
-                const hoje = new Date().toISOString().split('T')[0]; 
-                let entradasHoje = 0;
-                let saídasHoje = 0;
-
-                movs.forEach(m => {
-                    if (m.data && m.data.startsWith(hoje)) {
-                        const tipoMov = m.tipo ? m.tipo.toLowerCase() : '';
-                        if (tipoMov.includes('entrada')) {
-                            entradasHoje++;
-                        } else {
-                            saídasHoje++;
-                        }
-                    }
-                });
-                
-                document.getElementById('valMovHoje').textContent = entradasHoje + saídasHoje;
-                document.getElementById('valDetalheMov').textContent = `${entradasHoje} entradas, ${saídasHoje} saídas`;
-
-                // 4. PREENCHER AS LISTAS NA TELA
-                const listaMov = document.getElementById('listaMovimentacoes');
-                listaMov.innerHTML = '';
-                const recentes = movs
-    .sort((a, b) => {
-        const dataA = new Date(a.data);
-        const dataB = new Date(b.data);
-
-        if (dataB - dataA !== 0) {
-            return dataB - dataA;
-        }
-
-        return Number(b.id || 0) - Number(a.id || 0);
-    })
-    .slice(0, 5);
-                
-                if(recentes.length === 0) {
-                    listaMov.innerHTML = '<p class="empty-msg">Nenhuma movimentação registrada.</p>';
-                } else {
-                    recentes.forEach(m => {
-                        // MÁGICA DO FUSO HORÁRIO AQUI TAMBÉM
-                        let dataFormatada = 'Data inválida';
-                        if (m.data) {
-                            const apenasData = m.data.split('T')[0];
-                            const partes = apenasData.split('-');
-                            if (partes.length === 3) {
-                                dataFormatada = `${partes[2]}/${partes[1]}/${partes[0]}`;
-                            }
-                        }
-
-                        const tipoCerto = m.tipo.toLowerCase().includes('entrada') ? 'Entrada' : 'Saída';
-                        const cor = tipoCerto === 'Entrada' ? 'var(--success)' : 'var(--danger)';
-                        listaMov.innerHTML += `
-                            <div class="list-item">
-                                <span style="color:${cor}; font-weight:bold;">[${tipoCerto.toUpperCase()}]</span> 
-                                ${m.quantidade} unidades - <span style="color:var(--muted)">${dataFormatada}</span>
-                            </div>
-                        `;
-                    });
-                }
-
-                // Lista de Categorias
-                const listaCat = document.getElementById('listaCategorias');
-                listaCat.innerHTML = '';
-                const catsArray = Object.keys(categorias);
-                
-                if(catsArray.length === 0) {
-                    listaCat.innerHTML = '<p class="empty-msg">Nenhuma categoria encontrada.</p>';
-                } else {
-                    for (const [cat, qtd] of Object.entries(categorias)) {
-                        listaCat.innerHTML += `<div class="list-item"><b>${cat}</b>: ${qtd} tipo(s) de peça</div>`;
-                    }
-                }
-
-            } catch (e) {
-                console.error("Erro de ligação ao banco:", e);
-            }
-        }
-
-        const nomeGerente = localStorage.getItem('nomeGerenteLogado') || 'Administrador';
-        document.getElementById('nomeGerente').textContent = nomeGerente;
-        document.getElementById('boasVindas').textContent = `Bem-vindo, ${nomeGerente}!`;
-
-        carregarDashboard();
-    </script>
+    const usuario = window.apiAuth.getUsuario() || { nome: 'Gerente' };
+    const nomeUsuario = textoSeguro(usuario.nome, 'Gerente', 80);
+    document.getElementById('nomeGerente').textContent = nomeUsuario;
+    document.getElementById('avatarGerente').textContent = nomeUsuario.charAt(0).toUpperCase() || 'G';
+    document.getElementById('boasVindas').textContent = `${saudacao()}, ${nomeUsuario.split(' ')[0]}`;
+    carregarDashboard();
+  </script>
 </body>
 </html>

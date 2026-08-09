@@ -1,290 +1,827 @@
 <!doctype html>
 <html lang="pt-BR">
-
-<script src="auth.js"></script>
-
 <head>
+  <script src="auth.js"></script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Minhas Solicitações — Auto+Assis</title>
+  <title>Meus atendimentos — Auto+Assis</title>
+  <link rel="stylesheet" href="product.css">
   <style>
     :root {
-      --bg:#0a0a0a; --panel:#0f0f0f; --accent:#ff6a00; --text:#fff; --white:#ffffff;
-      --muted:#888; --success:#00c853; --pending:#ff6a00; --analysis:#1e88e5;
-      --danger:#ff4d4d; --radius:10px;
+      --client-paper: #f0eee7;
+      --client-paper-strong: #fffdf7;
+      --client-graphite: #202522;
+      --client-graphite-soft: #333a36;
+      --client-ink: #1b211e;
+      --client-muted: #68706b;
+      --client-line: #c9c8bf;
+      --client-orange: #f06422;
+      --client-green: #177a57;
+      --client-blue: #216a91;
+      --client-red: #b43d35;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: Inter, system-ui, sans-serif; }
-    body { background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
-    aside { width: 260px; background: var(--panel); display: flex; flex-direction: column; padding: 20px; gap: 20px; }
-    .logo { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); margin-bottom: 20px; }
-    .logo .mark { width: 60px; height: 60px; border-radius: 10px; background: linear-gradient(45deg, var(--accent), #ff9900); display: flex; align-items: center; justify-content: center; font-size: 2em; font-weight: bold; color: var(--bg); margin-bottom: 10px; }
-    .nav { display: flex; flex-direction: column; gap: 5px; }
-    .nav a { color: var(--muted); text-decoration: none; padding: 10px 15px; border-radius: var(--radius); transition: all 0.2s; }
-    .nav a.active, .nav a:hover { background: rgba(255, 106, 0, 0.1); color: var(--accent); }
-    .profile { display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 8px; background: rgba(255, 255, 255, 0.05); margin-top: auto; font-size: 0.9em; }
-    .avatar { width: 35px; height: 35px; border-radius: 50%; background: var(--accent); color: var(--bg); display: flex; align-items: center; justify-content: center; font-weight: bold; text-transform: uppercase; }
-    .logout { color: var(--muted); text-decoration: none; padding: 10px 15px; text-align: center; border: 1px solid #333; border-radius: 10px; margin-top: 10px; transition: 0.2s; }
-    .logout:hover { background: var(--danger); color: white; border-color: var(--danger); }
-    main { flex-grow: 1; padding: 40px; overflow-y: auto; }
-    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-    header h1 { color: var(--accent); }
-    .new-btn { background: var(--accent); color: var(--white); border: none; padding: 12px 25px; border-radius: 10px; cursor: pointer; font-weight: bold; }
-    .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
-    .card { background: var(--panel); padding: 20px; border-radius: 14px; border: 1px solid #1a1a1a; }
-    .card h3 { color: var(--muted); font-size: 0.9em; margin-bottom: 5px; }
-    .card p { font-size: 2em; font-weight: bold; }
-    .tabs-nav { display: flex; margin-bottom: 20px; border-bottom: 2px solid #1a1a1a; }
-    .tab-link { padding: 10px 20px; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; transition: 0.2s; font-weight: 600; }
-    .tab-link.active { color: var(--accent); border-bottom-color: var(--accent); }
-    .tab-content { display: none; }
-    .solicitacoes-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
-    .soli-card { background: var(--panel); padding: 20px; border-radius: var(--radius); border-left: 5px solid transparent; }
-    .soli-card.pending { border-left-color: var(--pending); }
-    .soli-card.analysis { border-left-color: var(--analysis); }
-    .soli-card.approved { border-left-color: var(--success); }
-    .soli-card.rejected { border-left-color: var(--danger); }
-    .header-soli { display: flex; justify-content: space-between; margin-bottom: 10px; }
-    .soli-status { font-weight: bold; padding: 4px 10px; border-radius: 4px; font-size: 0.75em; text-transform: uppercase; }
-    .empty { text-align: center; padding: 60px; color: var(--muted); }
-  
 
-/* Toast profissional */
-#toast {
-    position: fixed;
-    bottom: 30px;
-    right: 30px;
-    background: #111;
-    color: #fff;
-    border-left: 5px solid #ff6a00;
-    padding: 14px 18px;
-    border-radius: 10px;
-    opacity: 0;
-    transform: translateY(20px);
-    transition: .3s ease;
-    z-index: 9999;
-    pointer-events: none;
-    min-width: 260px;
-    max-width: 420px;
-    box-shadow: 0 10px 30px rgba(0,0,0,.45);
-    font-size: 14px;
-}
+    body.page-cliente {
+      min-height: 100vh !important;
+      overflow-x: hidden;
+      overflow-y: auto;
+      background: var(--client-paper) !important;
+      color: var(--client-ink) !important;
+      letter-spacing: 0;
+    }
 
-#toast.show {
-    opacity: 1;
-    transform: translateY(0);
-}
-</style>
-  <script src="auth.js"></script>
+    body.page-cliente::after { display: none !important; }
+
+    body.page-cliente aside.client-sidebar {
+      width: 272px !important;
+      min-width: 272px !important;
+      padding: 26px 22px 20px !important;
+      background: var(--client-graphite) !important;
+      border: 0 !important;
+      border-right: 5px solid var(--client-orange) !important;
+      box-shadow: none !important;
+      backdrop-filter: none !important;
+    }
+
+    body.page-cliente .client-sidebar .logo {
+      display: grid !important;
+      grid-template-columns: 48px 1fr;
+      gap: 12px !important;
+      margin: 0 0 32px !important;
+      min-height: 48px;
+      color: #f6f1e7;
+    }
+
+    body.page-cliente .client-sidebar .mark,
+    body.page-cliente .mobile-brand .mark {
+      width: 48px !important;
+      height: 48px !important;
+      border-radius: 2px !important;
+      background: var(--client-orange) !important;
+      box-shadow: none !important;
+      color: #171a18 !important;
+      font-family: "Arial Narrow", Arial, sans-serif;
+      font-size: 17px !important;
+      letter-spacing: -.05em;
+    }
+
+    .client-brand-copy { display: grid; align-content: center; gap: 2px; }
+    .client-brand-copy strong { color: #fff; font-size: 18px; letter-spacing: -.03em; }
+    .client-brand-copy small {
+      color: #a9b0ab;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 9px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .client-module-tag {
+      margin-bottom: 24px;
+      padding: 13px 0;
+      border-top: 1px solid #4c544f;
+      border-bottom: 1px solid #4c544f;
+      color: #d9ddd8;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 10px;
+      line-height: 1.65;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    body.page-cliente .client-sidebar nav::before {
+      content: "ÁREA DO CLIENTE";
+      margin: 0 10px 9px;
+      color: #858f88;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 9px;
+      letter-spacing: .16em;
+    }
+
+    body.page-cliente .client-sidebar nav { gap: 2px !important; }
+    body.page-cliente .client-sidebar nav a {
+      min-height: 48px;
+      padding: 0 10px !important;
+      border: 0 !important;
+      border-bottom: 1px solid #373d39 !important;
+      border-radius: 0 !important;
+      color: #c8cec9 !important;
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    body.page-cliente .client-sidebar nav a:hover {
+      padding-left: 15px !important;
+      background: #292f2b !important;
+      transform: none !important;
+    }
+
+    body.page-cliente .client-sidebar nav a.active {
+      padding-left: 15px !important;
+      background: transparent !important;
+      border-color: #515953 !important;
+      box-shadow: inset 4px 0 0 var(--client-orange) !important;
+      color: #fff !important;
+    }
+
+    body.page-cliente .nav-icon { color: var(--client-orange); }
+    body.page-cliente .client-sidebar .profile-card {
+      margin-top: auto !important;
+      padding: 15px 0 !important;
+      border: 0 !important;
+      border-top: 1px solid #4c544f !important;
+      border-bottom: 1px solid #4c544f !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+    }
+
+    body.page-cliente .client-sidebar .profile-avatar {
+      border: 1px solid var(--client-orange);
+      border-radius: 2px;
+      background: transparent;
+      color: var(--client-orange);
+      box-shadow: none;
+    }
+
+    body.page-cliente .client-sidebar .profile-card strong { color: #fff; }
+    body.page-cliente .client-sidebar .profile-card small { color: #9aa29c; }
+
+    body.page-cliente .client-sidebar .logout {
+      display: grid;
+      place-items: center;
+      min-height: 40px;
+      border: 1px solid #5b3c36 !important;
+      border-radius: 2px !important;
+      background: transparent !important;
+      color: #e79b8e !important;
+      font-size: 12px;
+      text-decoration: none;
+    }
+
+    body.page-cliente main.client-main {
+      position: relative;
+      padding: 38px clamp(24px, 4vw, 66px) 58px !important;
+      background-color: var(--client-paper) !important;
+      background-image:
+        linear-gradient(rgba(32, 37, 34, .035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(32, 37, 34, .035) 1px, transparent 1px) !important;
+      background-size: 28px 28px !important;
+      color: var(--client-ink) !important;
+    }
+
+    body.page-cliente main.page-enter { animation: none !important; }
+
+    .client-heading {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+      gap: 24px;
+      padding-bottom: 22px;
+      border-bottom: 3px solid var(--client-graphite);
+    }
+
+    .document-code,
+    .section-code,
+    .order-number {
+      font-family: Consolas, "Courier New", monospace;
+      text-transform: uppercase;
+    }
+
+    .document-code {
+      display: inline-flex;
+      gap: 9px;
+      align-items: center;
+      margin-bottom: 11px;
+      color: var(--client-muted);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .14em;
+    }
+
+    .document-code::before {
+      content: "";
+      width: 26px;
+      height: 5px;
+      background: var(--client-orange);
+    }
+
+    body.page-cliente main h1 {
+      max-width: 780px;
+      color: var(--client-graphite) !important;
+      font-family: "Arial Narrow", Arial, sans-serif !important;
+      font-size: clamp(38px, 5vw, 66px) !important;
+      font-weight: 900 !important;
+      line-height: .94;
+      letter-spacing: -.055em !important;
+      text-transform: uppercase;
+    }
+
+    .client-heading p {
+      max-width: 680px;
+      margin: 13px 0 0;
+      color: var(--client-muted) !important;
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .client-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .client-button {
+      min-height: 44px;
+      padding: 0 17px;
+      border: 1px solid var(--client-graphite);
+      border-radius: 2px;
+      background: transparent;
+      color: var(--client-graphite);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .035em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    .client-button:hover { background: #e3e0d7; }
+    .client-button.primary {
+      border-color: var(--client-orange);
+      background: var(--client-orange);
+      color: #171a18;
+    }
+    .client-button.primary:hover { background: #dd5419; }
+
+    .service-ledger {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      margin: 26px 0 34px;
+      border-top: 1px solid var(--client-graphite);
+      border-bottom: 1px solid var(--client-graphite);
+      background: var(--client-paper-strong);
+    }
+
+    .ledger-cell {
+      position: relative;
+      min-height: 118px;
+      padding: 19px 22px 16px;
+      border-right: 1px solid var(--client-line);
+    }
+
+    .ledger-cell:last-child { border-right: 0; }
+    .ledger-index {
+      position: absolute;
+      top: 15px;
+      right: 16px;
+      color: #a7aaa4;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 10px;
+    }
+    .ledger-cell span:not(.ledger-index) {
+      display: block;
+      max-width: 170px;
+      color: var(--client-muted);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .09em;
+      line-height: 1.35;
+      text-transform: uppercase;
+    }
+    .ledger-cell strong {
+      display: block;
+      margin-top: 12px;
+      color: var(--client-graphite);
+      font-family: "Arial Narrow", Arial, sans-serif;
+      font-size: 34px;
+      line-height: 1;
+    }
+
+    .orders-section {
+      border: 1px solid var(--client-line);
+      background: var(--client-paper-strong);
+    }
+
+    .orders-toolbar {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: stretch;
+      border-bottom: 1px solid var(--client-line);
+    }
+
+    .section-code {
+      display: grid;
+      place-items: center;
+      min-width: 110px;
+      padding: 15px;
+      background: var(--client-graphite);
+      color: #fff;
+      font-size: 10px;
+      letter-spacing: .11em;
+    }
+
+    .work-tabs { display: flex; min-width: 0; overflow-x: auto; }
+    .tab-link {
+      display: grid;
+      place-items: center;
+      min-height: 52px;
+      padding: 0 22px;
+      border-right: 1px solid var(--client-line);
+      border-bottom: 4px solid transparent;
+      color: var(--client-muted);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .06em;
+      text-decoration: none;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .tab-link:hover { color: var(--client-graphite); }
+    .tab-link.active {
+      border-bottom-color: var(--client-orange);
+      color: var(--client-graphite);
+    }
+
+    .tab-content { display: none; padding: 22px; }
+    .solicitacoes-list { display: grid; gap: 13px; }
+
+    .soli-card {
+      display: grid;
+      grid-template-columns: 190px minmax(0, 1fr) auto;
+      min-height: 150px;
+      border: 1px solid var(--client-line);
+      border-left: 6px solid var(--client-orange);
+      border-radius: 0;
+      background: #faf8f1;
+      color: var(--client-ink);
+    }
+    .soli-card.analysis { border-left-color: var(--client-blue); }
+    .soli-card.approved { border-left-color: var(--client-green); }
+    .soli-card.rejected { border-left-color: var(--client-red); }
+
+    .order-id-panel {
+      padding: 20px;
+      border-right: 1px dashed #aaa9a1;
+      background: #e9e6dc;
+    }
+    .order-number { color: var(--client-muted); font-size: 10px; letter-spacing: .08em; }
+    .order-number strong {
+      display: block;
+      margin-top: 8px;
+      color: var(--client-graphite);
+      font-size: 19px;
+      letter-spacing: -.03em;
+    }
+    .order-date { margin-top: 24px; color: var(--client-muted); font-size: 11px; line-height: 1.45; }
+
+    .order-content { min-width: 0; padding: 20px 24px; }
+    .order-content h3 {
+      margin: 0 0 12px;
+      color: var(--client-graphite);
+      font-family: "Arial Narrow", Arial, sans-serif;
+      font-size: 21px;
+      letter-spacing: -.025em;
+      text-transform: uppercase;
+    }
+    .order-content p { margin: 0; color: #555d58; font-size: 13px; line-height: 1.55; }
+    .problem-label {
+      display: block;
+      margin-bottom: 5px;
+      color: #858b86;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .order-state-panel {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: space-between;
+      min-width: 190px;
+      padding: 20px;
+      border-left: 1px solid var(--client-line);
+    }
+    .soli-status {
+      align-self: flex-start;
+      padding: 7px 9px;
+      border: 1px solid currentColor;
+      border-radius: 0;
+      background: transparent !important;
+      color: var(--client-orange) !important;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+    .analysis .soli-status { color: var(--client-blue) !important; }
+    .approved .soli-status { color: var(--client-green) !important; }
+    .rejected .soli-status { color: var(--client-red) !important; }
+
+    .order-budget { margin-top: 18px; color: var(--client-graphite); font-size: 13px; }
+    .order-budget strong { display: block; margin-top: 4px; font-size: 18px; }
+    .order-actions { display: flex; gap: 6px; margin-top: 12px; }
+    .order-action {
+      flex: 1;
+      min-height: 36px;
+      padding: 0 10px;
+      border: 1px solid var(--client-graphite);
+      border-radius: 1px;
+      background: transparent;
+      color: var(--client-graphite);
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .order-action.accept { border-color: var(--client-green); background: var(--client-green); color: #fff; }
+    .order-action.reject { border-color: var(--client-red); color: var(--client-red); }
+    .order-action.hide { width: 100%; border-color: #a09f98; color: #6f746f; }
+
+    .empty {
+      display: grid;
+      place-items: center;
+      min-height: 220px;
+      padding: 42px;
+      color: var(--client-muted);
+      text-align: center;
+    }
+    .empty::before {
+      content: "SEM REGISTROS";
+      display: block;
+      margin-bottom: 8px;
+      color: #9b9e98;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 10px;
+      letter-spacing: .14em;
+    }
+    .empty h3 { margin: 0; color: var(--client-muted); font-size: 14px; font-weight: 600; }
+
+    body.page-cliente .product-footer {
+      border-top-color: var(--client-line);
+      color: #777d78;
+    }
+
+    #toast {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      z-index: 1200;
+      min-width: 280px;
+      max-width: min(430px, calc(100vw - 32px));
+      padding: 15px 17px;
+      border: 1px solid #171a18;
+      border-left: 6px solid var(--client-orange);
+      border-radius: 0;
+      background: var(--client-graphite);
+      color: #fff;
+      font-size: 13px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(12px);
+      transition: opacity .18s ease, transform .18s ease;
+    }
+    #toast.show { opacity: 1; transform: translateY(0); }
+
+    @media (max-width: 1080px) {
+      .soli-card { grid-template-columns: 160px minmax(0, 1fr); }
+      .order-state-panel { grid-column: 1 / -1; flex-direction: row; align-items: center; border-top: 1px solid var(--client-line); border-left: 0; }
+    }
+
+    @media (max-width: 980px) {
+      body.page-cliente { overflow: auto; }
+      body.page-cliente aside.client-sidebar { position: fixed; width: 272px !important; }
+      body.page-cliente .mobile-topbar {
+        border-bottom: 4px solid var(--client-orange);
+        background: var(--client-graphite);
+        box-shadow: none;
+      }
+      body.page-cliente .mobile-brand { color: #fff; }
+      body.page-cliente .mobile-brand .mark { width: 34px !important; height: 34px !important; }
+      body.page-cliente .mobile-menu { border-radius: 2px; background: transparent; color: #fff; }
+      body.page-cliente main.client-main { padding: 30px 18px 46px !important; }
+      .client-heading { grid-template-columns: 1fr; align-items: start; }
+      .client-actions { justify-content: flex-start; }
+    }
+
+    @media (max-width: 680px) {
+      .client-heading h1 { font-size: 40px !important; }
+      .client-actions { display: grid; grid-template-columns: 1fr 1fr; }
+      .client-button { width: 100%; padding-inline: 10px; }
+      .service-ledger { grid-template-columns: 1fr; }
+      .ledger-cell { min-height: 94px; border-right: 0; border-bottom: 1px solid var(--client-line); }
+      .ledger-cell:last-child { border-bottom: 0; }
+      .orders-toolbar { grid-template-columns: 1fr; }
+      .section-code { min-width: 0; justify-content: start; place-items: center start; }
+      .tab-content { padding: 12px; }
+      .soli-card { grid-template-columns: 1fr; }
+      .order-id-panel { border-right: 0; border-bottom: 1px dashed #aaa9a1; }
+      .order-date { margin-top: 10px; }
+      .order-state-panel { grid-column: auto; flex-direction: column; align-items: stretch; }
+      #toast { right: 16px; bottom: 16px; min-width: 0; }
+    }
+  </style>
+  <script src="ui.js" defer></script>
+  <meta name="theme-color" content="#202522">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
 </head>
-<body>
-
-  <aside>
+<body class="app-page client-page page-cliente">
+  <aside class="client-sidebar">
     <div class="logo">
       <span class="mark">A+</span>
-      Auto+Assis
+      <span class="client-brand-copy">
+        <strong>Auto+Assis</strong>
+        <small>Serviço automotivo</small>
+      </span>
     </div>
-    <nav class="nav">
-      <a href="#" class="active" data-tab="solicitacoes">Minhas Solicitações</a>
-      <a href="#" data-tab="passado">Histórico e Orçamentos</a>
+
+    <div class="client-module-tag">Portal / Cliente<br>Canal de atendimento 01</div>
+
+    <nav class="nav" aria-label="Área do cliente">
+      <a href="cliente.html" class="active">Meus atendimentos</a>
+      <a href="novasoli.html">Solicitar atendimento</a>
     </nav>
-    <div class="profile">
-      <div class="avatar" id="avatarLetra">U</div>
+
+    <div class="profile-card">
+      <div class="profile-avatar" id="avatarLetra">C</div>
       <div>
-        <strong id="nomeUsuario">Usuário</strong><br>
-        <small style="color:var(--muted);">Cliente</small>
+        <strong id="nomeUsuario">Cliente</strong>
+        <small>Conta do cliente</small>
       </div>
     </div>
-    <a href="login.html" class="logout" onclick="event.preventDefault(); window.apiAuth.logout()">↩ Sair da Conta</a>
+    <a href="login.html" class="logout" onclick="event.preventDefault(); window.apiAuth.logout()">Encerrar sessão</a>
   </aside>
 
-  <main>
-    <header>
+  <main class="client-main">
+    <header class="client-heading">
       <div>
-        <h1>Meu Painel de Serviço</h1>
-        <p style="color:var(--muted)">Acompanhe o status dos seus veículos em tempo real.</p>
+        <div class="document-code">Portal de serviço / Documento 01</div>
+        <h1>Meus atendimentos</h1>
+        <p>Acompanhe cada etapa do diagnóstico, valide orçamentos e consulte o histórico do seu veículo.</p>
       </div>
-      <div style="display: flex; gap: 10px;">
-        <button class="new-btn" style="background: #333; color: white;" onclick="carregarDados()">🔄 Atualizar</button>
-        <button class="new-btn" onclick="window.location.href='novasoli.html'">+ Nova Solicitação</button>
+      <div class="client-actions">
+        <button type="button" class="client-button" onclick="carregarDados()">Atualizar dados</button>
+        <button type="button" class="client-button primary" onclick="window.location.href='novasoli.html'">Abrir solicitação</button>
       </div>
     </header>
 
-    <section class="cards">
-      <div class="card"><h3 style="color:var(--pending)">Pendentes / Rejeitados</h3><p id="contPendente">0</p></div>
-      <div class="card"><h3 style="color:var(--analysis)">Em Análise / Aguardando</h3><p id="contAnalise">0</p></div>
-      <div class="card"><h3 style="color:var(--success)">Aprovados / Concluídos</h3><p id="contAprovado">0</p></div>
+    <section class="service-ledger" aria-label="Resumo dos atendimentos">
+      <div class="ledger-cell">
+        <span class="ledger-index">01</span>
+        <span>Pendentes ou devolvidos</span>
+        <strong id="contPendente">0</strong>
+      </div>
+      <div class="ledger-cell">
+        <span class="ledger-index">02</span>
+        <span>Em análise ou aprovação</span>
+        <strong id="contAnalise">0</strong>
+      </div>
+      <div class="ledger-cell">
+        <span class="ledger-index">03</span>
+        <span>Aprovados ou concluídos</span>
+        <strong id="contAprovado">0</strong>
+      </div>
     </section>
-    
-    <div class="tabs-nav">
-        <a href="#" class="tab-link active" data-tab="solicitacoes">Solicitações Ativas</a>
-        <a href="#" class="tab-link" data-tab="passado">Histórico e Finalizados</a>
-    </div>
 
-    <div id="solicitacoesTab" class="tab-content" style="display:block;">
+    <section class="orders-section" aria-labelledby="ordersTitle">
+      <div class="orders-toolbar">
+        <div class="section-code" id="ordersTitle">Ordens / Cliente</div>
+        <nav class="work-tabs" aria-label="Filtrar atendimentos">
+          <a href="#solicitacoesTab" class="tab-link active" data-tab="solicitacoes">Em acompanhamento</a>
+          <a href="#passadoTab" class="tab-link" data-tab="passado">Histórico finalizado</a>
+        </nav>
+      </div>
+
+      <div id="solicitacoesTab" class="tab-content" style="display:block">
         <div id="soliGrid" class="solicitacoes-list"></div>
         <div id="soliEmpty" class="empty"><h3>Nenhuma solicitação ativa no momento.</h3></div>
-    </div>
+      </div>
 
-    <div id="passadoTab" class="tab-content">
+      <div id="passadoTab" class="tab-content">
         <div id="histGrid" class="solicitacoes-list"></div>
-        <div id="histEmpty" class="empty"><h3>Seu histórico está vazio.</h3></div>
-    </div>
+        <div id="histEmpty" class="empty"><h3>Seu histórico ainda está vazio.</h3></div>
+      </div>
+    </section>
+
+    <div id="toast" role="status" aria-live="polite"></div>
   </main>
 
   <script>
-    const emailCliente = localStorage.getItem('emailUsuario') || 'visitante@teste.com';
-    const nomeCliente = localStorage.getItem('nomeClienteLogado') || 'Cliente';
+    'use strict';
+
+    function textoSeguro(valor, padrao = '', limite = 180) {
+      const texto = typeof valor === 'string' ? valor.trim() : '';
+      return (texto || padrao).slice(0, limite);
+    }
+
+    function numeroSeguro(valor, padrao = 0) {
+      const numero = Number(valor);
+      return Number.isFinite(numero) ? numero : padrao;
+    }
+
+    function idSeguro(valor) {
+      const id = Number(valor);
+      return Number.isSafeInteger(id) && id > 0 ? id : null;
+    }
+
+    function criarElemento(tag, classe, texto) {
+      const elemento = document.createElement(tag);
+      if (classe) elemento.className = classe;
+      if (texto !== undefined) elemento.textContent = texto;
+      return elemento;
+    }
+
+    function formatarData(valor) {
+      const data = new Date(valor);
+      if (Number.isNaN(data.getTime())) return 'Data não informada';
+      return data.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+
+    const usuarioCliente = window.apiAuth.getUsuario() || {};
+    const emailCliente = textoSeguro(usuarioCliente.email || localStorage.getItem('emailUsuario'), '', 254).toLowerCase();
+    const nomeCliente = textoSeguro(usuarioCliente.nome || localStorage.getItem('nomeClienteLogado'), 'Cliente', 80);
+    const clienteId = idSeguro(usuarioCliente.id);
+    const chaveOcultosCliente = `autoassis:ocultos-cliente:${clienteId || encodeURIComponent(emailCliente)}`;
+
+    function lerOcultosCliente() {
+      try {
+        const dados = JSON.parse(localStorage.getItem(chaveOcultosCliente) || '[]');
+        return new Set(Array.isArray(dados) ? dados.map(idSeguro).filter(Boolean) : []);
+      } catch (erro) {
+        console.warn('Lista local de itens ocultos inválida; ela será recriada.');
+        return new Set();
+      }
+    }
+
+    function salvarOcultosCliente(ocultos) {
+      localStorage.setItem(chaveOcultosCliente, JSON.stringify([...ocultos].sort((a, b) => a - b)));
+    }
+
+    function statusVisual(status) {
+      if (status === 'Pendente') return 'pending';
+      if (status === 'Em Análise' || status === 'Aguardando Aprovação') return 'analysis';
+      if (status === 'Aprovado' || status === 'Em Andamento' || status === 'Concluído') return 'approved';
+      if (status === 'Rejeitado') return 'rejected';
+      return 'analysis';
+    }
+
+    function criarCartaoSolicitacao(solicitacao) {
+      const status = textoSeguro(solicitacao.status, 'Status desconhecido', 50);
+      const solicitacaoId = idSeguro(solicitacao.id);
+      const custoSugerido = Math.max(0, numeroSeguro(solicitacao.custoSugerido));
+      const card = criarElemento('article', `soli-card ${statusVisual(status)}`);
+
+      const identificacao = criarElemento('div', 'order-id-panel');
+      const numero = criarElemento('div', 'order-number', 'Protocolo');
+      numero.appendChild(criarElemento('strong', '', `SOL-${solicitacaoId || '—'}`));
+      const data = criarElemento('div', 'order-date', `Aberto em\n${formatarData(solicitacao.dataCriacao)}`);
+      data.style.whiteSpace = 'pre-line';
+      identificacao.append(numero, data);
+
+      const conteudo = criarElemento('div', 'order-content');
+      conteudo.appendChild(criarElemento('h3', '', textoSeguro(solicitacao.veiculo, 'Veículo não informado')));
+      conteudo.appendChild(criarElemento('span', 'problem-label', 'Relato informado'));
+      conteudo.appendChild(criarElemento('p', '', textoSeguro(solicitacao.problema, 'Problema não informado', 500)));
+
+      const estado = criarElemento('div', 'order-state-panel');
+      estado.appendChild(criarElemento('span', 'soli-status', status));
+
+      if (status === 'Aguardando Aprovação' && solicitacaoId) {
+        const blocoOrcamento = criarElemento('div', 'order-budget', 'Orçamento proposto');
+        blocoOrcamento.appendChild(criarElemento('strong', '', custoSugerido.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })));
+        const botoes = criarElemento('div', 'order-actions');
+        const aceitar = criarElemento('button', 'order-action accept', 'Aceitar');
+        aceitar.type = 'button';
+        aceitar.addEventListener('click', () => decidir(solicitacaoId, 'Aprovado', custoSugerido));
+        const recusar = criarElemento('button', 'order-action reject', 'Recusar');
+        recusar.type = 'button';
+        recusar.addEventListener('click', () => decidir(solicitacaoId, 'Rejeitado'));
+        botoes.append(aceitar, recusar);
+        blocoOrcamento.appendChild(botoes);
+        estado.appendChild(blocoOrcamento);
+      } else if ((status === 'Rejeitado' || status === 'Concluído') && solicitacaoId) {
+        const ocultar = criarElemento('button', 'order-action hide', 'Ocultar registro');
+        ocultar.type = 'button';
+        ocultar.addEventListener('click', () => remover(solicitacaoId));
+        estado.appendChild(ocultar);
+      }
+
+      card.append(identificacao, conteudo, estado);
+      return { card, status };
+    }
 
     async function carregarDados() {
-        const soliGrid = document.getElementById('soliGrid');
-        const histGrid = document.getElementById('histGrid');
-        
-        try {
-            const res = await fetch('http://localhost:3000/api/solicitacoes');
-            if (!res.ok) throw new Error("Erro no servidor");
-            
-            const dados = await res.json();
-            const minhasSolis = dados.filter(s => s.emailCliente === emailCliente);
+      const soliGrid = document.getElementById('soliGrid');
+      const histGrid = document.getElementById('histGrid');
 
-            let p=0, a=0, ap=0;
-            soliGrid.innerHTML = '';
-            histGrid.innerHTML = '';
+      try {
+        const resposta = await window.apiAuth.fetch('/api/solicitacoes');
+        if (!resposta.ok) throw new Error('Não foi possível carregar os atendimentos.');
 
-            minhasSolis.forEach(s => {
-                const card = document.createElement('div');
-                let statusCls = 'pending';
-                let botoes = '';
+        const dados = await resposta.json();
+        if (!Array.isArray(dados)) throw new Error('Resposta inválida do servidor.');
+        const ocultosCliente = lerOcultosCliente();
+        const minhasSolicitacoes = dados.filter((solicitacao) => {
+          const solicitacaoId = idSeguro(solicitacao?.id);
+          const pertenceAoCliente = !emailCliente || textoSeguro(solicitacao?.emailCliente, '', 254).toLowerCase() === emailCliente;
+          return pertenceAoCliente && (!solicitacaoId || !ocultosCliente.has(solicitacaoId));
+        });
 
-                // Lógica de Status e Contadores
-                if(s.status === 'Pendente') { p++; statusCls='pending'; }
-                else if(s.status === 'Em Análise' || s.status === 'Aguardando Aprovação') { a++; statusCls='analysis'; }
-                else if(s.status === 'Aprovado' || s.status === 'Em Andamento' || s.status === 'Concluído') { ap++; statusCls='approved'; }
-                else if(s.status === 'Rejeitado') { p++; statusCls='rejected'; }
+        let pendentes = 0;
+        let analise = 0;
+        let aprovados = 0;
+        soliGrid.replaceChildren();
+        histGrid.replaceChildren();
 
-                // BOTÕES PARA AGUARDANDO APROVAÇÃO
-                if(s.status === 'Aguardando Aprovação') {
-                    botoes = `
-                        <div style="margin-top:15px; padding-top:10px; border-top:1px solid #222;">
-                            <p style="margin-bottom:10px;"><strong>Orçamento: R$ ${parseFloat(s.custoSugerido).toFixed(2)}</strong></p>
-                            <div style="display:flex; gap:10px;">
-                                <button onclick="decidir(${s.id}, 'Aprovado', ${s.custoSugerido})" style="flex:1; background:var(--success); border:none; padding:8px; border-radius:5px; font-weight:bold; cursor:pointer; color:black;">Aceitar</button>
-                                <button onclick="decidir(${s.id}, 'Rejeitado')" style="flex:1; background:var(--danger); border:none; padding:8px; border-radius:5px; color:white; font-weight:bold; cursor:pointer;">Recusar</button>
-                            </div>
-                        </div>`;
-                }
+        minhasSolicitacoes.forEach((solicitacao) => {
+          const { card, status } = criarCartaoSolicitacao(solicitacao);
+          if (status === 'Pendente' || status === 'Rejeitado') pendentes += 1;
+          else if (status === 'Em Análise' || status === 'Aguardando Aprovação') analise += 1;
+          else if (status === 'Aprovado' || status === 'Em Andamento' || status === 'Concluído') aprovados += 1;
 
-                // BOTÃO DE REMOVER (Apenas para Rejeitados ou Concluídos)
-                if(s.status === 'Rejeitado' || s.status === 'Concluído') {
-                    botoes = `<button onclick="remover(${s.id})" style="margin-top:15px; background:none; border:1px solid #333; color:#666; padding:5px; width:100%; border-radius:5px; cursor:pointer;">Remover do Histórico</button>`;
-                }
+          if (status === 'Concluído' || status === 'Rejeitado') histGrid.appendChild(card);
+          else soliGrid.appendChild(card);
+        });
 
-                card.className = `soli-card ${statusCls}`;
-                card.innerHTML = `
-                    <div class="header-soli">
-                        <h3>${s.veiculo}</h3>
-                        <span class="soli-status" style="background:${getCor(s.status)}; color:${s.status==='Pendente'?'#000':'#fff'}">${s.status}</span>
-                    </div>
-                    <p style="color:#aaa; font-size:0.8em; margin-bottom:10px;">Protocolo: SOL-${s.id}</p>
-                    <p style="color:#eee; font-style:italic;">"${s.problema}"</p>
-                    ${botoes}
-                `;
-
-                // Distribui entre Abas
-                if(s.status === 'Concluído' || s.status === 'Rejeitado') {
-                    histGrid.appendChild(card);
-                } else {
-                    soliGrid.appendChild(card);
-                }
-            });
-
-            // Atualiza Visibilidade e Contadores
-            document.getElementById('soliEmpty').style.display = soliGrid.children.length ? 'none' : 'block';
-            document.getElementById('histEmpty').style.display = histGrid.children.length ? 'none' : 'block';
-            document.getElementById('contPendente').textContent = p;
-            document.getElementById('contAnalise').textContent = a;
-            document.getElementById('contAprovado').textContent = ap;
-
-        } catch (e) { console.error("Erro ao carregar", e); }
+        document.getElementById('soliEmpty').style.display = soliGrid.children.length ? 'none' : 'grid';
+        document.getElementById('histEmpty').style.display = histGrid.children.length ? 'none' : 'grid';
+        document.getElementById('contPendente').textContent = String(pendentes);
+        document.getElementById('contAnalise').textContent = String(analise);
+        document.getElementById('contAprovado').textContent = String(aprovados);
+      } catch (erro) {
+        console.error('Erro ao carregar atendimentos:', erro);
+        mostrarToast(erro.message || 'Erro ao carregar os atendimentos.');
+      }
     }
 
     function getCor(status) {
-        if(status === 'Pendente') return 'var(--pending)';
-        if(status === 'Aprovado' || status === 'Concluído' || status === 'Em Andamento') return 'var(--success)';
-        if(status === 'Rejeitado') return 'var(--danger)';
-        return 'var(--analysis)';
+      if (status === 'Pendente') return 'var(--client-orange)';
+      if (status === 'Aprovado' || status === 'Concluído' || status === 'Em Andamento') return 'var(--client-green)';
+      if (status === 'Rejeitado') return 'var(--client-red)';
+      return 'var(--client-blue)';
     }
 
-    // A ÚNICA FUNÇÃO DECIDIR (Limpa e Funcional)
-    async function decidir(id, status, valor=null) {
-        if(!confirm(`Deseja marcar como ${status}?`)) return;
-        
-        const os = status === 'Aprovado' ? "OS-" + Math.floor(1000 + Math.random() * 9000) : null;
-        
-        try {
-            const resposta = await fetch(`http://localhost:3000/api/solicitacoes/${id}`, {
-                method: 'PUT',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ 
-                    status: status, 
-                    custoSugerido: valor, 
-                    osNumero: os 
-                })
-            });
-            
-            if(resposta.ok) {
-                mostrarToast(status === 'Aprovado' ? "Orçamento aceito! A oficina iniciará o serviço." : "Orçamento recusado.");
-                carregarDados(); // Chama a função certa!
-            } else {
-                mostrarToast("Erro no servidor de banco de dados.");
-            }
-        } catch (e) { 
-            console.error(e);
-            mostrarToast("Erro ao conectar com o servidor! Você está abrindo o arquivo direto da pasta."); 
+    async function decidir(id, status, valor = null) {
+      const solicitacaoId = idSeguro(id);
+      const statusPermitidos = new Set(['Aprovado', 'Rejeitado']);
+      if (!solicitacaoId || !statusPermitidos.has(status)) {
+        mostrarToast('Não foi possível identificar esta solicitação.');
+        return;
+      }
+      if (!window.confirm(`Deseja marcar o orçamento como ${status.toLowerCase()}?`)) return;
+
+      try {
+        const resposta = await window.apiAuth.fetch(`/api/solicitacoes/${solicitacaoId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status })
+        });
+        if (!resposta.ok) {
+          const dadosErro = await resposta.json().catch(() => ({}));
+          throw new Error(dadosErro.erro || 'Não foi possível registrar sua decisão.');
         }
+        mostrarToast(status === 'Aprovado' ? 'Orçamento aceito. A oficina foi avisada.' : 'Orçamento recusado. A oficina foi avisada.');
+        await carregarDados();
+      } catch (erro) {
+        console.error('Erro ao atualizar solicitação:', erro);
+        mostrarToast(erro.message || 'Erro ao conectar com o servidor.');
+      }
     }
 
-    async function remover(id) {
-        if(!confirm("Remover este registro permanentemente?")) return;
-        await fetch(`/api/solicitacoes/${id}/arquivar`, { method: 'PATCH' });
-        carregarDados();
+    function remover(id) {
+      const solicitacaoId = idSeguro(id);
+      if (!solicitacaoId) return;
+      if (!window.confirm('Ocultar este registro do seu histórico? A oficina continuará com o registro salvo.')) return;
+      const ocultos = lerOcultosCliente();
+      ocultos.add(solicitacaoId);
+      salvarOcultosCliente(ocultos);
+      mostrarToast('Registro ocultado do seu histórico.');
+      carregarDados();
     }
 
     function switchTab(tab) {
-        document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
-        document.querySelectorAll('.tab-link, .nav a').forEach(l => l.classList.remove('active'));
-        document.getElementById(tab + 'Tab').style.display = 'block';
-        document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+      if (!['solicitacoes', 'passado'].includes(tab)) return;
+      document.querySelectorAll('.tab-content').forEach((conteudo) => { conteudo.style.display = 'none'; });
+      document.querySelectorAll('.work-tabs .tab-link').forEach((link) => link.classList.remove('active'));
+      document.getElementById(`${tab}Tab`).style.display = 'block';
+      document.querySelector(`.work-tabs [data-tab="${tab}"]`)?.classList.add('active');
     }
 
-    document.querySelectorAll('[data-tab]').forEach(el => el.onclick = (e) => switchTab(e.target.dataset.tab));
+    document.querySelectorAll('.work-tabs [data-tab]').forEach((elemento) => {
+      elemento.addEventListener('click', (evento) => {
+        evento.preventDefault();
+        switchTab(evento.currentTarget.dataset.tab);
+      });
+    });
 
-    // Início
+    function mostrarToast(texto) {
+      const toast = document.getElementById('toast');
+      toast.textContent = textoSeguro(texto, 'Operação concluída.', 260);
+      toast.classList.add('show');
+      window.clearTimeout(window.__toastTimer);
+      window.__toastTimer = window.setTimeout(() => toast.classList.remove('show'), 3200);
+    }
+
     document.getElementById('nomeUsuario').textContent = nomeCliente;
-    document.getElementById('avatarLetra').textContent = nomeCliente[0].toUpperCase();
+    document.getElementById('avatarLetra').textContent = nomeCliente.charAt(0).toUpperCase() || 'C';
     carregarDados();
   </script>
-
-  <div id="toast"></div>
-<script>
-
-function mostrarToast(texto) {
-    let toast = document.getElementById('toast');
-
-    if (!toast) {
-        toast = document.createElement('div');
-        toast.id = 'toast';
-        document.body.appendChild(toast);
-    }
-
-    toast.textContent = texto;
-    toast.classList.add('show');
-
-    clearTimeout(window.__toastTimer);
-    window.__toastTimer = setTimeout(() => {
-        toast.classList.remove('show');
-    }, 3000);
-}
-
-</script>
 </body>
 </html>

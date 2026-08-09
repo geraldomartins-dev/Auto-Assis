@@ -1,0 +1,17 @@
+{
+  "name": "Auto+Assis",
+  "short_name": "Auto+Assis",
+  "description": "Gestão integrada para oficinas automotivas.",
+  "start_url": "/login.html",
+  "display": "standalone",
+  "background_color": "#080b10",
+  "theme_color": "#ff7a1a",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

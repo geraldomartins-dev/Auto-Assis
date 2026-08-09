@@ -3,407 +3,228 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <script src="auth.js"></script>
+  <meta name="theme-color" content="#080b10">
+  <meta name="description" content="Gestão de peças e níveis de estoque da oficina Auto+Assis.">
   <title>Estoque — Auto+Assis</title>
+  <script src="auth.js"></script>
+  <link rel="stylesheet" href="product.css">
+  <script src="ui.js" defer></script>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
   <style>
-    :root{
-      --bg:#0a0a0a;
-      --panel:#0f0f0f;
-      --accent:#ff6a00;
-      --white:#ffffff;
-      --muted:#cccccc;
-      --success:#22c55e;
-      --danger:#ff4d4d;
-      --radius:12px;
-      --shadow:0 8px 30px rgba(0,0,0,0.6);
-      font-family:Inter,system-ui,sans-serif;
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { display: flex; min-height: 100vh; }
+    aside { display: flex; flex-direction: column; gap: 18px; }
+    aside nav { flex: 1; }
+    .logo { display: flex; align-items: center; gap: 12px; }
+
+    .inventory-toolbar { margin-bottom: 16px; padding: 18px 20px; }
+    .inventory-controls {
+      display: grid;
+      grid-template-columns: minmax(240px, 1.45fr) minmax(190px, .75fr);
+      align-items: end;
+      gap: 12px;
+    }
+    .control-field { display: grid; gap: 7px; min-width: 0; }
+    .control-field label {
+      color: #8e9bad !important;
+      font-size: 11px;
+      font-weight: 720 !important;
+      letter-spacing: .025em;
+    }
+    .control-field input,
+    .control-field select { width: 100%; }
+    .inventory-controls .button-primary { min-width: 138px; cursor: pointer; }
+    option { background: #111821; color: var(--white); }
+
+    .inventory-catalog { padding: 0; overflow: hidden; }
+    .inventory-catalog .surface-header { padding: 20px 22px; border-bottom: 1px solid var(--line); }
+    .catalog-note {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: #738096;
+      font-size: 11px;
+    }
+    .catalog-note::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 0 4px rgba(49,208,170,.08);
     }
 
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{background:var(--bg);color:var(--white);font-family:Inter,sans-serif;}
-    a{color:var(--accent);text-decoration:none;}
-    a:hover{text-decoration:underline;}
-    
-  /* Corrige o fundo branco invisível das opções do select */
-    option {
-      background-color: #141414;
-      color: #ffffff;
+    .inventory-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(245px, 1fr));
+      gap: 13px !important;
+      padding: 16px;
+    }
+    .inventory-grid > .card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 0;
+      min-height: 205px;
+      padding: 19px !important;
+      border-top: 1px solid var(--line) !important;
+      border-right: 1px solid var(--line) !important;
+      border-bottom: 1px solid var(--line) !important;
+      border-radius: 16px !important;
+      background: rgba(255,255,255,.024) !important;
+      box-shadow: none !important;
+      transition: transform .18s ease, border-color .18s ease, background .18s ease !important;
+    }
+    .inventory-grid > .card:hover {
+      transform: translateY(-2px);
+      border-top-color: rgba(255,122,26,.18) !important;
+      border-right-color: rgba(255,122,26,.18) !important;
+      border-bottom-color: rgba(255,122,26,.18) !important;
+      background: rgba(255,255,255,.035) !important;
+    }
+    .inventory-grid > .card h3 {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 4px;
+      color: #eef2f7;
+      font-size: 15px;
+      line-height: 1.35;
+    }
+    .inventory-grid > .card h3 span {
+      flex: 0 0 auto;
+      padding: 4px 7px;
+      border: 1px solid rgba(255,122,26,.16);
+      border-radius: 999px;
+      background: rgba(255,122,26,.07);
+      font-size: 10px;
+    }
+    .inventory-grid > .card p {
+      margin: 0 !important;
+      color: #7f8ca0 !important;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .inventory-grid > .card > div:last-child { margin-top: auto !important; gap: 8px !important; }
+    .inventory-grid > .card button {
+      min-height: 38px;
+      padding: 0 10px !important;
+      border: 1px solid var(--line) !important;
+      border-radius: 10px !important;
+      font-size: 11px;
+      font-weight: 720 !important;
+    }
+    .inventory-grid > .cards-loading,
+    .inventory-grid > p {
+      grid-column: 1 / -1;
+      padding: 44px 20px !important;
+      color: var(--muted) !important;
+      font-size: 12px !important;
+      text-align: center;
     }
 
-    .container{display:flex;height:100vh;}
-    aside{width:260px;background:var(--panel);padding:24px;display:flex;flex-direction:column;gap:18px;}
-    aside .logo{display:flex;align-items:center;gap:12px;font-weight:700;}
-    aside .logo .mark{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#ffa257);display:flex;align-items:center;justify-content:center;color:var(--bg);font-weight:800;}
-    aside nav{flex:1;display:flex;flex-direction:column;gap:12px;}
-    aside nav a{display:block;padding:10px 14px;border-radius:10px;color:var(--white);}
-    aside nav a.active, aside nav a:hover{background:rgba(255,106,0,0.2);}
-    aside .user{margin-top:auto;padding:12px;border-radius:10px;background:rgba(255,255,255,0.05);text-align:center;}
-    aside button{margin-top:12px;padding:10px;border:none;border-radius:10px;background:rgba(255,77,77,0.2);color:var(--danger);cursor:pointer;transition:background 0.2s;}
-    aside button:hover{background:rgba(255,77,77,0.4);}
-
-    main{flex:1;padding:24px;overflow-y:auto;}
-    main h1{font-size:24px;margin-bottom:4px;}
-    main p{color:var(--muted);margin-bottom:18px;}
-    .actions{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
-    .actions input, .actions select{padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:var(--white);}
-    .actions button{padding:10px 14px;border-radius:10px;border:none;background:linear-gradient(90deg,var(--accent),#ff8a3d);color:var(--white);cursor:pointer;transition:opacity 0.2s;}
-    .actions button:hover{opacity:0.8;}
-
-    .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:18px;}
-    .card{background:var(--panel);padding:18px;border-radius:var(--radius);box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px;}
-    .card h3{margin:0;font-size:16px;display:flex;justify-content:space-between;align-items:center;}
-    .card p{font-size:13px;color:var(--muted);}
-    .quantity{font-weight:600;}
-    .quantity.low{color:var(--danger);}
-    .quantity.ok{color:var(--success);}
-    .card button{margin-top:8px;padding:8px;border-radius:10px;border:none;background:rgba(255,106,0,0.2);color:var(--white);cursor:pointer;transition:background 0.2s;}
-    .card button:hover{background:rgba(255,106,0,0.35);}
-    .card .delete{background:rgba(255,77,77,0.2);margin-top:4px;}
-    .card .delete:hover{background:rgba(255,77,77,0.4);}
-    
-    /* Estado de carregamento */
-    .cards-loading { text-align: center; color: var(--muted); padding: 50px; font-size: 1.1em; }
-
-    /* =========================================
-       ESTILOS DO WIDGET DA INTELIGÊNCIA ARTIFICIAL
-       ========================================= */
-    .ai-chat-btn {
-        position: fixed;
-        bottom: 24px;
-        right: 24px;
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, var(--accent), #ffa257);
-        color: var(--bg);
-        font-size: 28px;
-        border: none;
-        box-shadow: 0 10px 25px rgba(255, 106, 0, 0.4);
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: transform 0.2s;
-        z-index: 1000;
+    @media (max-width: 760px) {
+      .inventory-controls { grid-template-columns: 1fr; }
+      .inventory-controls .button-primary { width: 100%; }
+      .inventory-catalog .surface-header { align-items: flex-start; flex-direction: column; }
+      .inventory-grid { grid-template-columns: 1fr; padding: 12px; }
     }
-    .ai-chat-btn:hover { transform: scale(1.08); }
-    
-    .ai-chat-window {
-        position: fixed;
-        bottom: 100px;
-        right: 24px;
-        width: 380px;
-        height: 500px;
-        background: var(--bg);
-        border: 1px solid rgba(255, 106, 0, 0.2);
-        border-radius: var(--radius);
-        box-shadow: var(--shadow);
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        z-index: 1000;
-        transform: translateY(20px);
-        opacity: 0;
-        pointer-events: none;
-        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-    }
-    .ai-chat-window.active {
-        transform: translateY(0);
-        opacity: 1;
-        pointer-events: auto;
-    }
-    .ai-chat-header {
-        background: linear-gradient(90deg, #1f1f1f, #141414);
-        border-bottom: 1px solid rgba(255, 106, 0, 0.2);
-        padding: 16px;
-        font-weight: 600;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .ai-chat-header span { display: flex; align-items: center; gap: 8px; color: var(--accent); }
-    .ai-chat-close { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; transition: color 0.2s; }
-    .ai-chat-close:hover { color: var(--danger); }
-    
-    .ai-chat-body {
-        flex: 1;
-        padding: 16px;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        background: var(--panel);
-    }
-    .ai-message {
-        max-width: 85%;
-        padding: 12px 14px;
-        border-radius: 12px;
-        font-size: 14px;
-        line-height: 1.5;
-        word-wrap: break-word;
-    }
-    .ai-message.user {
-        background: rgba(255,106,0,0.15);
-        border: 1px solid rgba(255,106,0,0.3);
-        color: var(--white);
-        align-self: flex-end;
-        border-bottom-right-radius: 4px;
-    }
-    .ai-message.bot {
-        background: rgba(255,255,255,0.05);
-        border: 1px solid rgba(255,255,255,0.1);
-        color: var(--muted);
-        align-self: flex-start;
-        border-bottom-left-radius: 4px;
-    }
-    
-    .ai-chat-footer {
-        padding: 14px;
-        background: #141414;
-        border-top: 1px solid rgba(255,255,255,0.05);
-        display: flex;
-        gap: 8px;
-    }
-    .ai-chat-footer input {
-        flex: 1;
-        padding: 12px;
-        border-radius: 8px;
-        border: 1px solid rgba(255,255,255,0.1);
-        background: var(--bg);
-        color: var(--white);
-        outline: none;
-        transition: border-color 0.2s;
-    }
-    .ai-chat-footer input:focus { border-color: var(--accent); }
-    .ai-chat-footer button {
-        padding: 0 16px;
-        border-radius: 8px;
-        border: none;
-        background: linear-gradient(90deg, var(--accent), #ff8a3d);
-        color: var(--bg);
-        cursor: pointer;
-        font-weight: bold;
-        transition: opacity 0.2s;
-    }
-    .ai-chat-footer button:hover { opacity: 0.8; }
-  
-
-/* Toast profissional */
-#toast {
-    position: fixed;
-    bottom: 30px;
-    right: 30px;
-    background: #111;
-    color: #fff;
-    border-left: 5px solid #ff6a00;
-    padding: 14px 18px;
-    border-radius: 10px;
-    opacity: 0;
-    transform: translateY(20px);
-    transition: .3s ease;
-    z-index: 9999;
-    pointer-events: none;
-    min-width: 260px;
-    max-width: 420px;
-    box-shadow: 0 10px 30px rgba(0,0,0,.45);
-    font-size: 14px;
-}
-
-#toast.show {
-    opacity: 1;
-    transform: translateY(0);
-}
-</style>
+  </style>
 </head>
 <body>
-  <div class="container">
-    <aside>
-      <div class="logo"><span class="mark">A+</span> Auto+Assis</div>
-      <nav>
-        <a href="dashboard.html">Dashboard</a>
-        <a href="estoque.html" class="active">Estoque</a>
-        <a href="movimentacao.html">Movimentações</a>
-        <a href="servicos.html">Serviços</a>
-        <a href="relatorio.html">Relatórios</a>
-        <a href="consultas.html">Consultas Rápidas</a>
-      </nav>
-      <div class="user">
-        <strong id="nomeGerentePerfil">Administrador</strong><br><small style="color:var(--muted)">Gerente</small>
-      </div>
-      <button id="sairBtn">Sair</button>
-    </aside>
+  <aside>
+    <div class="logo"><span class="mark">A+</span><span>Auto+Assis</span></div>
+    <div class="workspace-label"><span class="workspace-dot"></span><span><small>AMBIENTE</small>Oficina principal</span></div>
+    <nav>
+      <a href="dashboard.html">Dashboard</a>
+      <a href="estoque.html" class="active">Estoque</a>
+      <a href="movimentacao.html">Movimentações</a>
+      <a href="servicos.html">Serviços</a>
+      <a href="relatorio.html">Relatórios</a>
+      <a href="consultas.html">Consultas rápidas</a>
+      <a href="gerentes.html">Gerentes</a>
+    </nav>
+    <div class="user profile-card">
+      <div class="profile-avatar" id="avatarGerente">G</div>
+      <div><strong id="nomeGerentePerfil">Gerente</strong><small>Administrador</small></div>
+    </div>
+    <button id="sairBtn" type="button">Sair da conta</button>
+  </aside>
 
-    <main>
-      <h1>Estoque de Peças</h1>
-      <p>Gerencie todas as peças da oficina</p>
-      <div class="actions">
-        <input type="text" id="searchInput" placeholder="Buscar por nome ou código...">
-        <select id="categoriaFilter">
-          <option value="todas">Todas as Categorias</option>
-          <option value="Fluidos">Fluidos</option>
-          <option value="Elétrica">Elétrica</option>
-          <option value="Freios">Freios</option>
-          <option value="Filtros">Filtros</option>
-          <option value="Suspensão">Suspensão</option>
-          <option value="Motor">Motor</option>
-          <option value="Outros">Outros</option>
-        </select>
-        <button id="novaPecaBtn">+ Nova Peça</button>
+  <main>
+    <section class="page-heading">
+      <div>
+        <span class="page-overline">INVENTÁRIO</span>
+        <h1>Estoque de peças</h1>
+        <p>Consulte disponibilidade, níveis mínimos e organização do catálogo da oficina.</p>
       </div>
-      
-      <div class="cards" id="pecasContainer">
-          <div class="cards-loading">Carregando estoque...</div>
+      <div class="page-actions">
+        <span class="live-indicator"><i></i>Estoque sincronizado</span>
+        <button class="button-primary" id="novaPecaBtn" type="button">+ Nova peça</button>
       </div>
-    </main>
-  </div>
+    </section>
 
-  <button class="ai-chat-btn" id="aiToggleBtn" title="Falar com a IA">✨</button>
-  <div class="ai-chat-window" id="aiChatWindow">
-      <div class="ai-chat-header">
-          <span>✨ Assistente de Estoque</span>
-          <button class="ai-chat-close" id="aiCloseBtn">✖</button>
+    <section class="product-surface inventory-toolbar" aria-label="Filtros do estoque">
+      <div class="inventory-controls">
+        <div class="control-field">
+          <label for="searchInput">Buscar no catálogo</label>
+          <input type="search" id="searchInput" placeholder="Nome ou código da peça" autocomplete="off">
+        </div>
+        <div class="control-field">
+          <label for="categoriaFilter">Categoria</label>
+          <select id="categoriaFilter">
+            <option value="todas">Todas as categorias</option>
+            <option value="Fluidos">Fluidos</option>
+            <option value="Elétrica">Elétrica</option>
+            <option value="Freios">Freios</option>
+            <option value="Filtros">Filtros</option>
+            <option value="Suspensão">Suspensão</option>
+            <option value="Motor">Motor</option>
+            <option value="Outros">Outros</option>
+          </select>
+        </div>
       </div>
-      <div class="ai-chat-body" id="aiChatBody">
-          <div class="ai-message bot">Olá! Sou a IA integrada à oficina. Pergunte-me sobre a quantidade, localização, categorias ou alertas de peças que estão acabando no estoque.</div>
+    </section>
+
+    <section class="product-surface inventory-catalog" aria-labelledby="catalogTitle">
+      <header class="surface-header compact">
+        <div>
+          <span class="surface-eyebrow">CATÁLOGO</span>
+          <h2 id="catalogTitle">Peças cadastradas</h2>
+        </div>
+        <span class="catalog-note">Atualização em tempo real</span>
+      </header>
+      <div class="cards inventory-grid" id="pecasContainer" aria-live="polite">
+        <div class="cards-loading">Carregando estoque…</div>
       </div>
-      <div class="ai-chat-footer">
-          <input type="text" id="aiInput" placeholder="Ex: Onde está a correia?">
-          <button id="aiSendBtn">Enviar</button>
-      </div>
-  </div>
+    </section>
+  </main>
 
   <script src="scripts.js"></script>
   <script>
-    // --- LÓGICA DE PERFIL (Puxa da gaveta do Gerente) ---
-    const nomeLogado = localStorage.getItem('nomeGerenteLogado') || 'Administrador';
-    document.getElementById('nomeGerentePerfil').textContent = nomeLogado;
+    const usuarioEstoque = window.apiAuth.getUsuario() || {
+      nome: localStorage.getItem('nomeGerenteLogado') || 'Gerente'
+    };
+    const nomeEstoque = usuarioEstoque.nome || 'Gerente';
+    document.getElementById('nomeGerentePerfil').textContent = nomeEstoque;
+    document.getElementById('avatarGerente').textContent = nomeEstoque.trim().charAt(0).toUpperCase() || 'G';
 
-    document.getElementById("sairBtn").addEventListener("click", () => {
-        window.apiAuth.logout();
-    });
+    document.getElementById('sairBtn').addEventListener('click', () => window.apiAuth.logout());
 
-    // Redireciona para a página de criação de peça
-    document.getElementById("novaPecaBtn").addEventListener("click", () => {
-      // Limpa a variável de edição para garantir que abre no modo CRIAÇÃO
-      localStorage.removeItem('pecaEditandoId'); 
-      window.location.href = "criarpeca.html";
-    });
-
-    // Adiciona listeners para acionar o filtro no scripts.js
-    document.getElementById("searchInput").addEventListener("input", () => {
-        if (typeof window.aplicarFiltrosEstoque === 'function') {
-            window.aplicarFiltrosEstoque();
-        }
-    });
-    
-    document.getElementById("categoriaFilter").addEventListener("change", () => {
-        if (typeof window.aplicarFiltrosEstoque === 'function') {
-            window.aplicarFiltrosEstoque();
-        }
-    });
-
-    // ==========================================
-    // LÓGICA JAVASCRIPT DA INTELIGÊNCIA ARTIFICIAL
-    // ==========================================
-    const aiToggleBtn = document.getElementById('aiToggleBtn');
-    const aiChatWindow = document.getElementById('aiChatWindow');
-    const aiCloseBtn = document.getElementById('aiCloseBtn');
-    const aiChatBody = document.getElementById('aiChatBody');
-    const aiInput = document.getElementById('aiInput');
-    const aiSendBtn = document.getElementById('aiSendBtn');
-
-    // Abre e fecha a janela de chat
-    aiToggleBtn.addEventListener('click', () => {
-        aiChatWindow.classList.toggle('active');
-        if(aiChatWindow.classList.contains('active')) aiInput.focus();
-    });
-    aiCloseBtn.addEventListener('click', () => aiChatWindow.classList.remove('active'));
-
-    // Função que cria as bolhas visuais do chat (verde para usuário, escuro para bot)
-    function adicionarMensagem(tipo, texto) {
-        const div = document.createElement('div');
-        div.className = `ai-message ${tipo}`;
-        div.textContent = texto;
-        
-        // Gera um ID para a mensagem (usado para apagar a mensagem de "pensando...")
-        const id = 'msg-' + Date.now();
-        div.id = id;
-
-        aiChatBody.appendChild(div);
-        
-        // Rola automaticamente para a última mensagem
-        aiChatBody.scrollTop = aiChatBody.scrollHeight;
-        
-        return id;
+    function abrirCadastroPeca() {
+      localStorage.removeItem('pecaEditandoId');
+      window.location.href = 'criarpeca.html';
     }
 
-    // Função que manda a requisição para o seu servidor Node.js (que fala com a IA)
-    async function enviarMensagemIA() {
-        const pergunta = aiInput.value.trim();
-        if (!pergunta) return;
+    document.getElementById('novaPecaBtn').addEventListener('click', abrirCadastroPeca);
 
-        // 1. Imprime a pergunta do mecânico e limpa o campo
-        adicionarMensagem('user', pergunta);
-        aiInput.value = '';
-
-        // 2. Coloca um aviso visual de que a IA está raciocinando
-        const idPensando = adicionarMensagem('bot', 'A ler o banco de dados do estoque...');
-
-        try {
-            // 3. Dispara a pergunta para a nova rota que você criou no server.js
-            const resposta = await fetch('http://localhost:3000/api/ia-estoque', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ pergunta: pergunta })
-            });
-
-            const dados = await resposta.json();
-            
-            // 4. Apaga o "A ler o banco..."
-            document.getElementById(idPensando).remove();
-            
-            // 5. Imprime a resposta oficial na tela
-            if (resposta.ok) {
-                adicionarMensagem('bot', dados.resposta);
-            } else {
-                adicionarMensagem('bot', dados.erro || 'Desculpe, a IA está indisponível.');
-            }
-        } catch (erro) {
-            document.getElementById(idPensando).remove();
-            adicionarMensagem('bot', '❌ Sem conexão com a API. Certifique-se de que ligou o seu servidor Node.js no terminal!');
-        }
+    function mostrarToast(texto) {
+      if (window.productUI?.notify) window.productUI.notify(texto, 'success');
     }
-
-    // Permite disparar a mensagem apertando a tecla "Enter"
-    aiInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') enviarMensagemIA();
-    });
-    
-    // Dispara a mensagem clicando no botão enviar
-    aiSendBtn.addEventListener('click', enviarMensagemIA);
   </script>
-
-  <div id="toast"></div>
-<script>
-
-function mostrarToast(texto) {
-    let toast = document.getElementById('toast');
-
-    if (!toast) {
-        toast = document.createElement('div');
-        toast.id = 'toast';
-        document.body.appendChild(toast);
-    }
-
-    toast.textContent = texto;
-    toast.classList.add('show');
-
-    clearTimeout(window.__toastTimer);
-    window.__toastTimer = setTimeout(() => {
-        toast.classList.remove('show');
-    }, 3000);
-}
-
-</script>
+  <div id="toast" hidden aria-live="polite"></div>
 </body>
 </html>
