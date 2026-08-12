@@ -162,10 +162,11 @@ test('rotas de gerentes exigem autenticação e perfil de gerente', () => {
   assert.match(servidor, /app\.post\('\/api\/gerentes', autenticar, somenteGerente/);
 });
 
-test('estoque permite leitura operacional da equipe e mantém escrita exclusiva do gerente', () => {
+test('estoque permite cadastro pela equipe e mantém edição e exclusão exclusivas do gerente', () => {
   const servidor = ler('server.js');
   assert.match(servidor, /app\.get\('\/api\/pecas', autenticar, somenteEquipe/);
-  assert.match(servidor, /app\.post\('\/api\/pecas', autenticar, somenteGerente/);
+  assert.match(servidor, /app\.post\('\/api\/pecas', autenticar, somenteEquipe/);
+  assert.match(servidor, /req\.usuario\.tipo === 'gerente' \? decimal\(req\.body\.preco/);
   assert.match(servidor, /app\.put\('\/api\/pecas\/:id', autenticar, somenteGerente/);
   assert.match(servidor, /app\.delete\('\/api\/pecas\/:id', autenticar, somenteGerente/);
 });

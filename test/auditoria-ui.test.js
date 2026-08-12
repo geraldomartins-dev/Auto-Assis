@@ -42,3 +42,19 @@ test('UI confirma antes de descartar alterações não salvas', () => {
   assert.match(ui, /Descartar alterações e sair/);
   assert.match(ui, /productUI\.markSaved/);
 });
+
+test('cliente recebe somente o histórico dos próprios atendimentos sem dados internos', () => {
+  const server = ler('server.js');
+  const rota = server.match(/app\.get\('\/api\/auditoria\/meus-atendimentos'[\s\S]*?\n\}\)\);/)?.[0] || '';
+  assert.match(rota, /s\.emailCliente = \?/);
+  assert.match(rota, /CASE a\.usuarioTipo WHEN 'cliente' THEN 'Você' ELSE 'Oficina'/);
+  assert.doesNotMatch(rota.match(/res\.json[\s\S]*/)?.[0] || '', /usuarioEmail|\bip\b|usuarioNome/);
+});
+
+test('mecânico cadastra peça com preço protegido e autoria auditada', () => {
+  const server = ler('server.js');
+  const rota = server.match(/app\.post\('\/api\/pecas'[\s\S]*?\n\}\)\);/)?.[0] || '';
+  assert.match(rota, /somenteEquipe/);
+  assert.match(rota, /req\.usuario\.tipo === 'gerente'[^\n]+: 0/);
+  assert.match(rota, /registrarAuditoria\(conn, req/);
+});

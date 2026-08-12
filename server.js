@@ -869,14 +869,14 @@ app.get('/api/pecas', autenticar, somenteEquipe, asyncRoute(async (req, res) => 
   res.json(rows);
 }));
 
-app.post('/api/pecas', autenticar, somenteGerente, asyncRoute(async (req, res) => {
+app.post('/api/pecas', autenticar, somenteEquipe, asyncRoute(async (req, res) => {
   const nome = texto(req.body.nome, 'Nome', 2, 100);
   const descricao = String(req.body.descricao || '').trim().slice(0, 1000);
   const categoria = texto(req.body.categoria, 'Categoria', 2, 50);
   const localizacao = String(req.body.localizacao || '').trim().slice(0, 100);
   const quantidade = inteiro(req.body.quantidade, 'Quantidade');
   const min = inteiro(req.body.min, 'Quantidade mínima');
-  const preco = decimal(req.body.preco, 'Preço');
+  const preco = req.usuario.tipo === 'gerente' ? decimal(req.body.preco, 'Preço') : 0;
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
@@ -976,6 +976,30 @@ app.get('/api/auditoria', autenticar, somenteGerente, asyncRoute(async (req, res
     registros: registros.map((item) => ({ ...item, dadosAntes: normalizarJson(item.dadosAntes), dadosDepois: normalizarJson(item.dadosDepois) })),
     proximoCursor: registros.length === limite ? registros.at(-1).id : null
   });
+}));
+
+app.get('/api/auditoria/meus-atendimentos', autenticar, asyncRoute(async (req, res) => {
+  if (req.usuario.tipo !== 'cliente') return res.status(403).json({ erro: 'Esta consulta pertence ao portal do cliente.' });
+  const [registros] = await pool.execute(
+    `SELECT a.id, a.entidadeId AS solicitacaoId, a.acao, a.resumo, a.dadosAntes, a.dadosDepois, a.criadoEm,
+            CASE a.usuarioTipo WHEN 'cliente' THEN 'Você' ELSE 'Oficina' END AS autor
+       FROM auditoria a
+       INNER JOIN solicitacoes s ON CAST(s.id AS CHAR) = a.entidadeId
+      WHERE a.entidade = 'servico' AND s.emailCliente = ?
+      ORDER BY a.id DESC LIMIT 100`,
+    [req.usuario.email]
+  );
+  const ler = (valor) => { if (valor == null || typeof valor === 'object') return valor; try { return JSON.parse(valor); } catch { return null; } };
+  res.json(registros.map((item) => ({
+    id: item.id,
+    solicitacaoId: Number(item.solicitacaoId),
+    acao: item.acao,
+    resumo: item.resumo,
+    autor: item.autor,
+    statusAnterior: ler(item.dadosAntes)?.status || null,
+    statusAtual: ler(item.dadosDepois)?.status || null,
+    criadoEm: item.criadoEm
+  })));
 }));
 
 app.post('/api/movimentacoes', autenticar, somenteEquipe, asyncRoute(async (req, res) => {
@@ -1228,6 +1252,7 @@ app.put('/api/solicitacoes/:id', autenticar, asyncRoute(async (req, res) => {
       [status, status, req.usuario.id, id, req.usuario.email]
     );
     if (!resultado.affectedRows) return res.status(404).json({ erro: 'Solicitação não encontrada ou transição não permitida.' });
+    await registrarAuditoria(pool, req, { acao: 'STATUS', entidade: 'servico', entidadeId: id, resumo: `Orçamento ${status.toLowerCase()} pelo cliente`, antes: { status: 'Aguardando Aprovação' }, depois: { status } });
     return res.json({ mensagem: 'Decisão registrada.', decisao: { status, origem: 'cliente' } });
   }
 
@@ -1263,6 +1288,7 @@ app.put('/api/solicitacoes/:id', autenticar, asyncRoute(async (req, res) => {
     if (!resultado.affectedRows) {
       return res.status(409).json({ erro: 'O serviço foi alterado por outro usuário. Atualize a tela e tente novamente.' });
     }
+    await registrarAuditoria(pool, req, { acao: 'STATUS', entidade: 'servico', entidadeId: id, resumo: `Serviço atualizado para ${status}`, antes: { status: statusAtual }, depois: { status } });
     return res.json({ mensagem: 'Andamento do serviço atualizado.' });
   }
 
@@ -1315,6 +1341,7 @@ app.put('/api/solicitacoes/:id', autenticar, asyncRoute(async (req, res) => {
         [custo, osNumero, orcamentoVersao, orcamentoHash, id]
       );
       if (resultado.affectedRows !== 1) throw erroHttp(409, 'Não foi possível versionar o orçamento.');
+      await registrarAuditoria(conn, req, { acao: 'STATUS', entidade: 'servico', entidadeId: id, resumo: 'Orçamento enviado para aprovação', antes: { status: atual.status }, depois: { status, orcamentoVersao } });
       await conn.commit();
       return res.json({
         mensagem: 'Orçamento enviado para aprovação.',
@@ -1342,6 +1369,7 @@ app.put('/api/solicitacoes/:id', autenticar, asyncRoute(async (req, res) => {
         [status, status, req.usuario.id, id, atual.status]
       );
       if (resultado.affectedRows !== 1) throw erroHttp(409, 'Não foi possível registrar a decisão.');
+      await registrarAuditoria(conn, req, { acao: 'STATUS', entidade: 'servico', entidadeId: id, resumo: `Serviço atualizado para ${status}`, antes: { status: atual.status }, depois: { status } });
       await conn.commit();
       return res.json({ mensagem: 'Decisão registrada.', decisao: { status, origem: 'gerente' } });
     }
@@ -1354,6 +1382,7 @@ app.put('/api/solicitacoes/:id', autenticar, asyncRoute(async (req, res) => {
       [status, id, atual.status]
     );
     if (resultado.affectedRows !== 1) throw erroHttp(409, 'Não foi possível atualizar a solicitação.');
+    await registrarAuditoria(conn, req, { acao: 'STATUS', entidade: 'servico', entidadeId: id, resumo: `Serviço atualizado para ${status}`, antes: { status: atual.status }, depois: { status } });
     await conn.commit();
     return res.json({ mensagem: 'Solicitação atualizada.' });
   } catch (error) {

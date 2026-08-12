@@ -79,6 +79,7 @@ setTimeout(revelarAutoAssis, 1200);
     mecanico: [
       'dashboard.read',
       'inventory.read',
+      'inventory.create',
       'movements.read',
       'movements.write',
       'services.read',
@@ -289,11 +290,11 @@ setTimeout(revelarAutoAssis, 1200);
     'servicos.html',
     'consultas.html',
     'novamovimentacao.html',
-    'gerenciar_solicitacao.html'
+    'gerenciar_solicitacao.html',
+    'criarpeca.html'
   ]);
   const paginasGerente = new Set([
     'relatorio.html',
-    'criarpeca.html',
     'novaos.html',
     'gerentes.html'
     ,'auditoria.html'

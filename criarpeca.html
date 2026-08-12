@@ -500,7 +500,7 @@
                   <input id="min" type="number" min="0" value="5">
                   <small>O sistema usa este valor para alertas de reposição.</small>
                 </div>
-                <div class="field span-4">
+                <div class="field span-4" data-manager-only>
                   <label for="preco">Preço unitário (R$)</label>
                   <input id="preco" type="number" step="0.01" min="0" value="0.00">
                   <small>Informe o custo ou valor de referência da peça.</small>
@@ -527,7 +527,10 @@
     const pageTitle = document.getElementById('pageTitle');
     const pageLead = document.getElementById('pageLead');
 
-    const pecaEditandoId = localStorage.getItem('pecaEditandoId');
+    const usuarioAtual = window.apiAuth.getUsuario() || {};
+    const podeEditarPeca = usuarioAtual.tipo === 'gerente';
+    if (!podeEditarPeca) localStorage.removeItem('pecaEditandoId');
+    const pecaEditandoId = podeEditarPeca ? localStorage.getItem('pecaEditandoId') : null;
 
     window.addEventListener('load', async () => {
       if (pecaEditandoId) {
@@ -570,7 +573,7 @@
         localizacao: document.getElementById('localizacao').value.trim(),
         quantidade: parseInt(document.getElementById('quantidade').value, 10),
         min: parseInt(document.getElementById('min').value, 10),
-        preco: parseFloat(document.getElementById('preco').value) || 0,
+        ...(podeEditarPeca ? { preco: parseFloat(document.getElementById('preco')?.value) || 0 } : {}),
       };
 
       submitBtn.textContent = 'Salvando...';

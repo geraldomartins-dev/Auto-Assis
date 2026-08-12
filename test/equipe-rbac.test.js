@@ -342,7 +342,7 @@ test('exclui outro membro da equipe em transação', async () => {
   assert.match((await resposta.json()).mensagem, /excluído/i);
 });
 
-test('mecânico consulta peças sem receber preço e não pode cadastrá-las', async () => {
+test('mecânico consulta e cadastra peças sem acessar ou definir preço', async () => {
   autorizar('mecanico', {
     query: async sql => {
       assert.doesNotMatch(sql, /preco/i);
@@ -362,12 +362,25 @@ test('mecânico consulta peças sem receber preço e não pode cadastrá-las', a
   assert.equal(leitura.status, 200);
   assert.equal('preco' in pecas[0], false);
 
+  let parametrosCadastro;
+  const conexao = {
+    beginTransaction: async () => {},
+    execute: async (sql, parametros = []) => {
+      if (sql.startsWith('INSERT INTO pecas')) { parametrosCadastro = parametros; return [{ insertId: 55 }, []]; }
+      if (sql.startsWith('INSERT INTO movimentacoes')) return [{ insertId: 56 }, []];
+      if (sql.includes('INSERT INTO auditoria')) return [{ insertId: 57 }, []];
+      throw new Error(`SQL inesperado: ${sql}`);
+    },
+    commit: async () => {}, rollback: async () => {}, release: () => {}
+  };
+  autorizar('mecanico', { getConnection: async () => conexao });
   const cadastro = await fetch(`${baseUrl}/api/pecas`, {
     method: 'POST',
     headers: { ...headers('mecanico'), 'Content-Type': 'application/json' },
-    body: JSON.stringify({})
+    body: JSON.stringify({ nome: 'Pastilha de freio', descricao: '', categoria: 'Freios', localizacao: 'B-02', quantidade: 4, min: 2, preco: 999 })
   });
-  assert.equal(cadastro.status, 403);
+  assert.equal(cadastro.status, 201);
+  assert.equal(parametrosCadastro[6], 0);
 });
 
 test('mecânico pode ler movimentações de estoque', async () => {

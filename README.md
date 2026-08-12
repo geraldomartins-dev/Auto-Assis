@@ -2,7 +2,7 @@
 
 Plataforma web para a operação de oficinas automotivas. O sistema reúne estoque, movimentações, solicitações, ordens de serviço, relatórios, consultas operacionais e controle de equipe em uma instalação dedicada por oficina.
 
-Versão atual: **1.3.0**.
+Versão atual: **1.4.0**.
 
 ## Funcionalidades
 
@@ -22,6 +22,7 @@ Versão atual: **1.3.0**.
 
 - dashboard e estoque sem valores financeiros;
 - registro e consulta de movimentações;
+- cadastro de novas peças sem acesso ao preço, com autoria registrada;
 - alteração da quantidade do estoque por entradas e saídas auditadas;
 - consulta da fila de serviços;
 - consultas rápidas operacionais sem faturamento, preços ou dados pessoais desnecessários;
@@ -34,6 +35,7 @@ Versão atual: **1.3.0**.
 - cadastro e autenticação;
 - abertura e acompanhamento de solicitações;
 - aprovação ou rejeição de orçamento;
+- histórico auditável das mudanças do próprio atendimento, sem dados internos da oficina;
 - recuperação de senha por e-mail quando o SMTP está configurado.
 
 ### Experiência de uso

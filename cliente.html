@@ -662,7 +662,7 @@
       return 'analysis';
     }
 
-    function criarCartaoSolicitacao(solicitacao) {
+    function criarCartaoSolicitacao(solicitacao, eventos = []) {
       const status = textoSeguro(solicitacao.status, 'Status desconhecido', 50);
       const solicitacaoId = idSeguro(solicitacao.id);
       const custoSugerido = Math.max(0, numeroSeguro(solicitacao.custoSugerido));
@@ -682,6 +682,19 @@
 
       const estado = criarElemento('div', 'order-state-panel');
       estado.appendChild(criarElemento('span', 'soli-status', status));
+
+      if (eventos.length) {
+        const historico = document.createElement('details');
+        historico.className = 'client-audit';
+        const tituloHistorico = document.createElement('summary');
+        tituloHistorico.textContent = `Histórico do atendimento (${eventos.length})`;
+        historico.appendChild(tituloHistorico);
+        eventos.slice(0, 8).forEach((evento) => {
+          const linha = criarElemento('p', '', `${formatarData(evento.criadoEm)} · ${textoSeguro(evento.resumo, 'Atendimento atualizado')} · ${textoSeguro(evento.autor, 'Oficina')}`);
+          historico.appendChild(linha);
+        });
+        estado.appendChild(historico);
+      }
 
       if (status === 'Aguardando Aprovação' && solicitacaoId) {
         const blocoOrcamento = criarElemento('div', 'order-budget', 'Orçamento proposto');
@@ -712,10 +725,21 @@
       const histGrid = document.getElementById('histGrid');
 
       try {
-        const resposta = await window.apiAuth.fetch('/api/solicitacoes');
+        const [resposta, respostaAuditoria] = await Promise.all([
+          window.apiAuth.fetch('/api/solicitacoes'),
+          window.apiAuth.fetch('/api/auditoria/meus-atendimentos')
+        ]);
         if (!resposta.ok) throw new Error('Não foi possível carregar os atendimentos.');
 
         const dados = await resposta.json();
+        const eventosAuditoria = respostaAuditoria.ok ? await respostaAuditoria.json() : [];
+        const auditoriaPorSolicitacao = new Map();
+        if (Array.isArray(eventosAuditoria)) eventosAuditoria.forEach((evento) => {
+          const id = idSeguro(evento.solicitacaoId);
+          if (!id) return;
+          if (!auditoriaPorSolicitacao.has(id)) auditoriaPorSolicitacao.set(id, []);
+          auditoriaPorSolicitacao.get(id).push(evento);
+        });
         if (!Array.isArray(dados)) throw new Error('Resposta inválida do servidor.');
         const ocultosCliente = lerOcultosCliente();
         const minhasSolicitacoes = dados.filter((solicitacao) => {
@@ -731,7 +755,7 @@
         histGrid.replaceChildren();
 
         minhasSolicitacoes.forEach((solicitacao) => {
-          const { card, status } = criarCartaoSolicitacao(solicitacao);
+          const { card, status } = criarCartaoSolicitacao(solicitacao, auditoriaPorSolicitacao.get(idSeguro(solicitacao.id)) || []);
           if (status === 'Pendente' || status === 'Rejeitado') pendentes += 1;
           else if (status === 'Em Análise' || status === 'Aguardando Aprovação') analise += 1;
           else if (status === 'Aprovado' || status === 'Em Andamento' || status === 'Concluído') aprovados += 1;

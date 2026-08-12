@@ -43,10 +43,18 @@ function autorizar(tipo, opcoes = {}) {
     if (/SELECT id, nome, email, tipo, auth_version FROM usuarios WHERE id = \? LIMIT 1/.test(sql)) {
       return [[atual], []];
     }
+    if (/INSERT INTO auditoria/.test(sql)) return [{ insertId: 1 }, []];
     if (opcoes.execute) return opcoes.execute(sql, parametros);
     throw new Error(`SQL execute inesperado: ${sql}`);
   };
-  if (opcoes.getConnection) pool.getConnection = opcoes.getConnection;
+  if (opcoes.getConnection) pool.getConnection = async () => {
+    const conexao = await opcoes.getConnection();
+    const executar = conexao.execute.bind(conexao);
+    conexao.execute = async (sql, parametros = []) => /INSERT INTO auditoria/.test(sql)
+      ? [{ insertId: 1 }, []]
+      : executar(sql, parametros);
+    return conexao;
+  };
 }
 
 function cabecalhos(tipo = 'gerente', id) {

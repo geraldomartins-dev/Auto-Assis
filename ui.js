@@ -251,7 +251,6 @@
   if (currentRole === 'mecanico') {
     document.querySelectorAll('[data-manager-only], .manager-only').forEach((element) => element.remove());
     document.querySelector('.metric-value-card')?.setAttribute('hidden', '');
-    document.getElementById('novaPecaBtn')?.setAttribute('hidden', '');
   }
 
   // Protege formulários editados contra saídas acidentais. A janela curta de

@@ -1,5 +1,13 @@
 # Histórico de versões
 
+## 1.4.0 - 2026-08-12
+
+- mecânico pode cadastrar peças, mas não definir preço, editar ou excluir cadastros;
+- cadastro feito pelo mecânico registra sua autoria na auditoria operacional;
+- portal do cliente mostra somente o histórico do próprio atendimento, sem IP, e-mails ou nomes internos;
+- mudanças de status de gerente, mecânico e cliente passam a alimentar a trilha do atendimento;
+- telas operacionais ficaram mais enxutas, removendo códigos e metadados decorativos repetidos.
+
 ## 1.3.0 - 2026-08-08
 
 - mecânico autorizado a alterar quantidades somente por movimentações transacionais;
