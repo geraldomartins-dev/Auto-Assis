@@ -84,6 +84,8 @@ setTimeout(revelarAutoAssis, 1200);
       'movements.write',
       'services.read',
       'services.write',
+      'services.quote',
+      'services.archive',
       'services.contract',
       'consultations.read'
     ],

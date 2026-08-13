@@ -531,7 +531,7 @@ test('permissão de contrato do mecânico não libera a página de relatórios',
   assert.match(auth, /const paginasGerente = new Set\(\[[\s\S]*?'relatorio\.html'/);
 });
 
-test('mecânico atualiza andamento, mas não orçamento ou número da OS', async () => {
+test('mecânico atualiza andamento, mas não injeta custo ou número da OS fora do orçamento', async () => {
   autorizar('mecanico', {
     execute: async sql => {
       if (sql.startsWith('SELECT status FROM solicitacoes')) {
@@ -561,6 +561,49 @@ test('mecânico atualiza andamento, mas não orçamento ou número da OS', async
     body: JSON.stringify({ status: 'Em Andamento', osNumero: 'OS-900' })
   });
   assert.equal(os.status, 403);
+});
+
+test('mecânico envia orçamento versionado para aprovação com autoria auditada', async () => {
+  let parametrosUpdate;
+  let auditoriaRegistrada = false;
+  const conexao = {
+    beginTransaction: async () => {},
+    execute: async (sql, parametros = []) => {
+      if (sql.includes('FROM solicitacoes') && sql.includes('FOR UPDATE')) {
+        return [[{
+          status: 'Em Análise', custoSugerido: null, osNumero: null,
+          orcamentoVersao: 0, orcamentoHash: null, anoOs: 2026
+        }], []];
+      }
+      if (sql.includes("SET status = 'Aguardando Aprovação'")) {
+        parametrosUpdate = parametros;
+        return [{ affectedRows: 1 }, []];
+      }
+      if (sql.includes('INSERT INTO auditoria')) {
+        auditoriaRegistrada = true;
+        return [{ insertId: 1 }, []];
+      }
+      throw new Error(`SQL inesperado: ${sql}`);
+    },
+    commit: async () => {},
+    rollback: async () => {},
+    release: () => {}
+  };
+  autorizar('mecanico', { getConnection: async () => conexao });
+
+  const resposta = await fetch(`${baseUrl}/api/solicitacoes/23`, {
+    method: 'PUT',
+    headers: { ...headers('mecanico'), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: 'Aguardando Aprovação', custoSugerido: 780 })
+  });
+  const corpo = await resposta.json();
+
+  assert.equal(resposta.status, 200);
+  assert.equal(corpo.osNumero, 'OS-2026-000023');
+  assert.equal(corpo.orcamentoVersao, 1);
+  assert.deepEqual(parametrosUpdate.slice(0, 3), [780, corpo.osNumero, 1]);
+  assert.match(parametrosUpdate[3], /^[a-f0-9]{64}$/);
+  assert.equal(auditoriaRegistrada, true);
 });
 
 test('configuração da oficina lê o singleton e expõe somente campos públicos', async () => {
