@@ -134,21 +134,34 @@ function aplicarFiltrosEstoque() {
         card.style.borderLeft = `5px solid ${isLow ? 'var(--danger)' : 'var(--success)'}`;
 
         const titulo = criarNo('h3', '', `${normalizarTexto(p.nome, 'Peça sem nome')} `);
-        const codigo = criarNo('span', '', `#${id || '—'}`);
-        codigo.style.color = 'var(--accent)';
-        titulo.appendChild(codigo);
-
-        const categoria = criarNo('p', '', `Categoria: ${normalizarTexto(p.categoria, 'Sem categoria')}`);
-        const estoque = criarNo('p', '', 'Qtd: ');
+        const estoque = criarNo('p', 'inventory-balance', 'Disponível: ');
         const quantidadeNo = criarNo('b', '', String(quantidade));
         quantidadeNo.style.color = isLow ? 'var(--danger)' : 'var(--success)';
-        estoque.append(quantidadeNo, document.createTextNode(` (Min: ${minimo})`));
-        const valor = precoDisponivel
-            ? criarNo('p', '', `Preço: ${preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`)
-            : null;
+        estoque.append(quantidadeNo);
+        const situacao = criarNo('span', `inventory-state ${isLow ? 'attention' : 'regular'}`, isLow ? 'Repor' : 'Regular');
+        const resumo = criarNo('div', 'inventory-summary');
+        resumo.append(estoque, situacao);
 
-        const conteudo = [titulo, categoria, estoque];
-        if (valor) conteudo.push(valor);
+        const detalhes = criarNo('details', 'inventory-details');
+        const abrirDetalhes = criarNo('summary', '', 'Ver detalhes');
+        const listaDetalhes = criarNo('dl', '');
+        const adicionarDetalhe = (rotulo, valor) => {
+            const linha = criarNo('div', '');
+            linha.append(criarNo('dt', '', rotulo), criarNo('dd', '', valor));
+            listaDetalhes.appendChild(linha);
+        };
+        adicionarDetalhe('Código', `#${id || '—'}`);
+        adicionarDetalhe('Categoria', normalizarTexto(p.categoria, 'Sem categoria'));
+        adicionarDetalhe('Estoque mínimo', String(minimo));
+        if (normalizarTexto(p.localizacao)) adicionarDetalhe('Localização', normalizarTexto(p.localizacao));
+        const valor = precoDisponivel
+            ? preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+            : null;
+        if (valor) adicionarDetalhe('Preço', valor);
+        if (normalizarTexto(p.descricao)) adicionarDetalhe('Descrição', normalizarTexto(p.descricao, '', 500));
+        detalhes.append(abrirDetalhes, listaDetalhes);
+
+        const conteudo = [titulo, resumo, detalhes];
 
         if (podeGerenciarEstoque()) {
             const acoes = criarNo('div', 'inventory-card-actions');

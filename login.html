@@ -360,25 +360,16 @@
       </div>
 
       <div class="rail-copy">
-        <p class="rail-code">Terminal / acesso 01</p>
         <h1>A oficina em movimento. O controle no lugar.</h1>
-        <p>Operação, estoque e atendimento reunidos em uma rotina clara para quem vive a oficina todos os dias.</p>
+        <p>Operação, estoque e atendimento em um só lugar.</p>
       </div>
-
-      <div class="rail-spec" aria-label="Recursos do sistema">
-        <div><span>Operação</span><strong>Em tempo real</strong></div>
-        <div><span>Acesso</span><strong>Por perfil</strong></div>
-        <div><span>Ambiente</span><strong>Protegido</strong></div>
-      </div>
-      <div class="rail-foot"><span>AA / OPS / BR</span><span>SYS.01</span></div>
     </aside>
 
     <section class="access-stage" aria-labelledby="pageTitle">
       <div class="station">
-        <div class="station-index"><span>Identificação de operador</span><b>01 / 04</b></div>
         <header class="station-heading">
-          <h2 id="pageTitle">Entre na operação.</h2>
-          <p>Use suas credenciais. O sistema identifica automaticamente clientes, mecânicos e gerentes.</p>
+          <h2 id="pageTitle">Acesse sua conta</h2>
+          <p>Entre com seu e-mail e senha.</p>
         </header>
 
         <form id="loginForm" novalidate>
@@ -400,7 +391,7 @@
           </div>
 
           <div id="status" class="status" role="status" aria-live="polite" style="display:none"></div>
-          <button type="submit" id="submitBtn">Entrar no sistema</button>
+          <button type="submit" id="submitBtn">Entrar</button>
 
           <div class="account-links">
             <span>Ainda não tem acesso?</span>
@@ -408,10 +399,6 @@
           </div>
         </form>
 
-        <footer class="station-footer">
-          <span>&copy; <span id="year"></span> Auto+Assis</span>
-          <span>Gestão automotiva integrada</span>
-        </footer>
       </div>
     </section>
   </main>
@@ -429,7 +416,6 @@
       emailEl.value = rememberedEmail;
       rememberEl.checked = true;
     }
-    document.getElementById('year').textContent = new Date().getFullYear();
 
     toggleBtn.addEventListener('click', () => {
       const reveal = pwdEl.type === 'password';

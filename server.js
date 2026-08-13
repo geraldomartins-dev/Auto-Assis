@@ -1257,39 +1257,49 @@ app.put('/api/solicitacoes/:id', autenticar, asyncRoute(async (req, res) => {
   }
 
   if (req.usuario.tipo === 'mecanico') {
+    const enviandoOrcamento = status === 'Aguardando Aprovação';
     const possuiCampoFinanceiro = Object.prototype.hasOwnProperty.call(req.body, 'custoSugerido')
       || Object.prototype.hasOwnProperty.call(req.body, 'osNumero');
-    if (possuiCampoFinanceiro) {
-      return res.status(403).json({ erro: 'Mecânico não pode alterar orçamento, custo ou número da OS.' });
+    if (enviandoOrcamento) {
+      if (Object.prototype.hasOwnProperty.call(req.body, 'osNumero')) {
+        return res.status(403).json({ erro: 'O número da OS é gerado automaticamente pelo servidor.' });
+      }
+      if (!Object.prototype.hasOwnProperty.call(req.body, 'custoSugerido')) {
+        return res.status(400).json({ erro: 'Informe o valor do orçamento.' });
+      }
+    } else if (possuiCampoFinanceiro) {
+      return res.status(403).json({ erro: 'O mecânico só pode definir o custo ao enviar o orçamento para aprovação.' });
     }
-    const transicoesOperacionais = {
-      'Em Análise': ['Pendente'],
-      'Em Andamento': ['Aprovado'],
-      'Concluído': ['Em Andamento']
-    };
-    if (!transicoesOperacionais[status]) {
-      return res.status(403).json({ erro: 'Este status exige autorização de gerente.' });
+    if (!enviandoOrcamento) {
+      const transicoesOperacionais = {
+        'Em Análise': ['Pendente'],
+        'Em Andamento': ['Aprovado'],
+        'Concluído': ['Em Andamento']
+      };
+      if (!transicoesOperacionais[status]) {
+        return res.status(403).json({ erro: 'Este status exige autorização de gerente.' });
+      }
+      const [solicitacoes] = await pool.execute(
+        'SELECT status FROM solicitacoes WHERE id = ? AND arquivado = 0 LIMIT 1',
+        [id]
+      );
+      if (!solicitacoes.length) return res.status(404).json({ erro: 'Solicitação não encontrada.' });
+      const statusAtual = solicitacoes[0].status;
+      if (!transicoesOperacionais[status].includes(statusAtual)) {
+        return res.status(409).json({
+          erro: `Transição de ${statusAtual} para ${status} não permitida para mecânico.`
+        });
+      }
+      const [resultado] = await pool.execute(
+        'UPDATE solicitacoes SET status = ? WHERE id = ? AND arquivado = 0 AND status = ?',
+        [status, id, statusAtual]
+      );
+      if (!resultado.affectedRows) {
+        return res.status(409).json({ erro: 'O serviço foi alterado por outro usuário. Atualize a tela e tente novamente.' });
+      }
+      await registrarAuditoria(pool, req, { acao: 'STATUS', entidade: 'servico', entidadeId: id, resumo: `Serviço atualizado para ${status}`, antes: { status: statusAtual }, depois: { status } });
+      return res.json({ mensagem: 'Andamento do serviço atualizado.' });
     }
-    const [solicitacoes] = await pool.execute(
-      'SELECT status FROM solicitacoes WHERE id = ? AND arquivado = 0 LIMIT 1',
-      [id]
-    );
-    if (!solicitacoes.length) return res.status(404).json({ erro: 'Solicitação não encontrada.' });
-    const statusAtual = solicitacoes[0].status;
-    if (!transicoesOperacionais[status].includes(statusAtual)) {
-      return res.status(409).json({
-        erro: `Transição de ${statusAtual} para ${status} não permitida para mecânico.`
-      });
-    }
-    const [resultado] = await pool.execute(
-      'UPDATE solicitacoes SET status = ? WHERE id = ? AND arquivado = 0 AND status = ?',
-      [status, id, statusAtual]
-    );
-    if (!resultado.affectedRows) {
-      return res.status(409).json({ erro: 'O serviço foi alterado por outro usuário. Atualize a tela e tente novamente.' });
-    }
-    await registrarAuditoria(pool, req, { acao: 'STATUS', entidade: 'servico', entidadeId: id, resumo: `Serviço atualizado para ${status}`, antes: { status: statusAtual }, depois: { status } });
-    return res.json({ mensagem: 'Andamento do serviço atualizado.' });
   }
 
   const informouCusto = Object.prototype.hasOwnProperty.call(req.body, 'custoSugerido')
@@ -1395,25 +1405,40 @@ app.put('/api/solicitacoes/:id', autenticar, asyncRoute(async (req, res) => {
   }
 }));
 
-app.patch('/api/solicitacoes/:id/arquivar', autenticar, somenteGerente, asyncRoute(async (req, res) => {
+async function arquivarSolicitacao(req, res) {
   const id = idNumerico(req.params.id);
-  const [resultado] = await pool.execute(
-    "UPDATE solicitacoes SET arquivado=1, arquivado_em=NOW() WHERE id=? AND status IN ('Concluído','Rejeitado')",
-    [id]
-  );
-  if (!resultado.affectedRows) return res.status(404).json({ erro: 'Solicitação não encontrada ou ainda não finalizada.' });
-  res.json({ mensagem: 'Solicitação arquivada.' });
-}));
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const [solicitacoes] = await conn.execute(
+      "SELECT id, status, osNumero FROM solicitacoes WHERE id = ? AND arquivado = 0 AND status IN ('Concluído','Rejeitado') LIMIT 1 FOR UPDATE",
+      [id]
+    );
+    const atual = solicitacoes[0];
+    if (!atual) throw erroHttp(409, 'Somente solicitações finalizadas podem ser arquivadas.');
+    const [resultado] = await conn.execute(
+      'UPDATE solicitacoes SET arquivado = 1, arquivado_em = NOW() WHERE id = ? AND arquivado = 0',
+      [id]
+    );
+    if (resultado.affectedRows !== 1) throw erroHttp(409, 'O serviço foi alterado por outro usuário.');
+    await registrarAuditoria(conn, req, {
+      acao: 'ARQUIVAR', entidade: 'servico', entidadeId: id,
+      resumo: `Serviço arquivado${atual.osNumero ? ` — ${atual.osNumero}` : ''}`,
+      antes: { status: atual.status, arquivado: false }, depois: { status: atual.status, arquivado: true }
+    });
+    await conn.commit();
+    return res.json({ mensagem: 'Solicitação arquivada.' });
+  } catch (error) {
+    await conn.rollback();
+    if (error.status) return res.status(error.status).json({ erro: error.message });
+    throw error;
+  } finally {
+    conn.release();
+  }
+}
 
-app.delete('/api/solicitacoes/:id', autenticar, somenteGerente, asyncRoute(async (req, res) => {
-  const id = idNumerico(req.params.id);
-  const [resultado] = await pool.execute(
-    "UPDATE solicitacoes SET arquivado=1, arquivado_em=NOW() WHERE id=? AND status IN ('Concluído','Rejeitado')",
-    [id]
-  );
-  if (!resultado.affectedRows) return res.status(409).json({ erro: 'Somente solicitações finalizadas podem ser arquivadas.' });
-  res.status(204).end();
-}));
+app.patch('/api/solicitacoes/:id/arquivar', autenticar, somenteEquipe, asyncRoute(arquivarSolicitacao));
+app.delete('/api/solicitacoes/:id', autenticar, somenteEquipe, asyncRoute(arquivarSolicitacao));
 
 app.use((req, res) => res.status(404).json({ erro: 'Rota não encontrada.' }));
 app.use((error, req, res, _next) => {
