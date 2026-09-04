@@ -289,22 +289,19 @@
   <main>
     <section class="page-heading">
       <div>
-        <span class="page-overline">CENTRAL DE ATENDIMENTO</span>
-        <h1>Operação de serviços</h1>
-        <p>Acompanhe solicitações, prioridades e ordens de serviço em um único fluxo.</p>
+        <h1>Serviços</h1>
+        <p>Atendimentos que precisam de acompanhamento.</p>
       </div>
       <div class="page-actions">
-        <span class="live-indicator"><i></i>Fila sincronizada</span>
-        <button class="button-secondary" type="button" onclick="carregarServicos()">Atualizar lista</button>
         <button class="button-primary manager-only" data-manager-only type="button" onclick="window.location.href='novaos.html'">+ Nova OS presencial</button>
       </div>
     </section>
 
     <section class="service-overview" aria-label="Resumo dos serviços">
-      <article class="service-kpi"><span>Visíveis na fila</span><strong id="totalServicos">—</strong><small>atendimentos operacionais</small></article>
       <article class="service-kpi waiting"><span>Aguardando ação</span><strong id="totalAguardando">—</strong><small>pendentes ou em análise</small></article>
       <article class="service-kpi running"><span>Em execução</span><strong id="totalExecucao">—</strong><small>aprovados ou em andamento</small></article>
       <article class="service-kpi done"><span>Finalizados</span><strong id="totalFinalizados">—</strong><small>concluídos ou rejeitados</small></article>
+      <span id="totalServicos" hidden>—</span>
     </section>
 
     <section class="service-toolbar" aria-label="Filtros dos serviços">
@@ -342,6 +339,7 @@
 
     const usuarioLogado = window.apiAuth.getUsuario() || {};
     const podeGerenciarFinanceiro = window.apiAuth.can('services.financial');
+    const podeArquivar = window.apiAuth.can('services.archive') || podeGerenciarFinanceiro;
     const podeGerarContrato = window.apiAuth.can('services.contract');
     const nomeLogado = usuarioLogado.nome || localStorage.getItem('nomeGerenteLogado') || 'Gerente';
     document.getElementById('nomeGerentePerfil').textContent = nomeLogado;
@@ -366,16 +364,6 @@
 
     function textoBusca(valor) {
       return String(valor || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-    }
-
-    function lerServicosOcultos() {
-      try {
-        const dados = JSON.parse(localStorage.getItem('ocultosGerente') || '[]');
-        return Array.isArray(dados) ? dados.map(String) : [];
-      } catch {
-        localStorage.removeItem('ocultosGerente');
-        return [];
-      }
     }
 
     function classeStatus(status) {
@@ -405,7 +393,7 @@
       document.getElementById('contadorResultados').textContent = `${servicos.length} ${servicos.length === 1 ? 'resultado' : 'resultados'}`;
 
       if (!servicos.length) {
-        container.innerHTML = '<div class="service-state"><div><strong>Nenhum atendimento encontrado</strong><p>Ajuste os filtros ou registre uma nova ordem de serviço.</p></div></div>';
+        container.innerHTML = '<div class="service-state"><div><strong>Nenhum serviço encontrado</strong><p>Altere os filtros para continuar.</p></div></div>';
         return;
       }
 
@@ -419,8 +407,8 @@
         const ordem = servico.osNumero
           ? `<span class="service-badge badge-order">${escaparHtml(servico.osNumero)}</span>`
           : '';
-        const arquivar = podeGerenciarFinanceiro && gruposStatus.closed.includes(servico.status)
-          ? `<button type="button" class="btn-ocultar" onclick="ocultarServico(${Number(servico.id)})">Arquivar</button>`
+        const arquivar = podeArquivar && gruposStatus.closed.includes(servico.status)
+          ? `<button type="button" class="btn-ocultar" onclick="arquivarServico(${Number(servico.id)})">Arquivar</button>`
           : '';
         const contratoPronto = Boolean(servico.osNumero) && (
           Number(servico.orcamentoVersao || 0) > 0
@@ -440,12 +428,19 @@
                   <p>${escaparHtml(servico.nomeCliente || 'Cliente não informado')} · Protocolo SOL-${Number(servico.id)}</p>
                 </div>
               </div>
-              <p class="service-problem">${escaparHtml(servico.problema || 'Sem descrição do problema.')}</p>
               <div class="service-tags">
                 <span class="service-badge badge-${statusClass}">${escaparHtml(servico.status || 'Sem status')}</span>
                 ${ordem}
                 ${urgencia}
               </div>
+              <details class="service-details">
+                <summary>Ver detalhes</summary>
+                <dl>
+                  <div><dt>Cliente</dt><dd>${escaparHtml(servico.nomeCliente || 'Não informado')}</dd></div>
+                  <div><dt>Problema</dt><dd>${escaparHtml(servico.problema || 'Não informado')}</dd></div>
+                  ${servico.ano ? `<div><dt>Ano</dt><dd>${escaparHtml(servico.ano)}</dd></div>` : ''}
+                </dl>
+              </details>
             </div>
             <div class="service-actions">
               <a href="gerenciar_solicitacao.html?id=${Number(servico.id)}" class="btn-gerenciar">Gerenciar</a>
@@ -469,7 +464,7 @@
     async function carregarServicos() {
       const container = document.getElementById('listaServicos');
       container.setAttribute('aria-busy', 'true');
-      container.innerHTML = '<div class="service-state"><div><div class="loading-pulse" aria-hidden="true"></div><strong>Atualizando atendimentos</strong><p>Sincronizando a fila da oficina.</p></div></div>';
+      container.innerHTML = '<div class="service-state"><div><div class="loading-pulse" aria-hidden="true"></div><strong>Atualizando serviços…</strong></div></div>';
 
       try {
         const resposta = await window.apiAuth.fetch('/api/solicitacoes');
@@ -477,9 +472,7 @@
         if (!resposta.ok) throw new Error(dados.erro || 'Não foi possível carregar os atendimentos.');
         if (!Array.isArray(dados)) throw new Error('O servidor retornou uma resposta inválida.');
 
-        const ocultos = lerServicosOcultos();
         todosOsServicos = dados
-          .filter((servico) => !ocultos.includes(String(servico.id)))
           .sort((a, b) => {
             const pesos = { Pendente: 1, 'Em Análise': 2, 'Aguardando Aprovação': 3, Aprovado: 4, 'Em Andamento': 5, Concluído: 6, Rejeitado: 7 };
             return (pesos[a.status] || 99) - (pesos[b.status] || 99) || Number(b.id) - Number(a.id);
@@ -490,18 +483,22 @@
       } catch (erro) {
         console.error('Erro ao carregar serviços:', erro);
         container.setAttribute('aria-busy', 'false');
-        container.innerHTML = `<div class="service-state"><div><strong>Não foi possível conectar ao servidor</strong><p>${escaparHtml(erro.message)}</p><button type="button" onclick="carregarServicos()">Tentar novamente</button></div></div>`;
+        container.innerHTML = `<div class="service-state"><div><strong>Não foi possível carregar</strong><p>${escaparHtml(erro.message)}</p><button type="button" onclick="carregarServicos()">Tentar novamente</button></div></div>`;
         document.getElementById('contadorResultados').textContent = 'Falha na sincronização';
       }
     }
 
-    function ocultarServico(id) {
+    async function arquivarServico(id) {
       if (!confirm('Deseja arquivar este serviço da sua lista?')) return;
-      const ocultos = lerServicosOcultos();
-      if (!ocultos.includes(String(id))) ocultos.push(String(id));
-      localStorage.setItem('ocultosGerente', JSON.stringify(ocultos));
-      mostrarToast('Serviço arquivado da visualização.');
-      carregarServicos();
+      try {
+        const resposta = await window.apiAuth.fetch(`/api/solicitacoes/${Number(id)}/arquivar`, { method: 'PATCH' });
+        const dados = await resposta.json().catch(() => ({}));
+        if (!resposta.ok) throw new Error(dados.erro || 'Não foi possível arquivar o serviço.');
+        mostrarToast(dados.mensagem || 'Serviço arquivado.');
+        await carregarServicos();
+      } catch (erro) {
+        mostrarToast(erro.message || 'Não foi possível arquivar o serviço.');
+      }
     }
 
     function textoDocumento(valor, alternativa = 'Não informado') {

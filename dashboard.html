@@ -34,12 +34,10 @@
   <main>
     <section class="page-heading dashboard-heading">
       <div>
-        <span class="page-overline">CENTRAL OPERACIONAL</span>
         <h1 id="boasVindas">Bom dia, Gerente</h1>
-        <p>Indicadores essenciais da sua oficina, atualizados em tempo real.</p>
+        <p>O que precisa da sua atenção agora.</p>
       </div>
       <div class="page-actions">
-        <span class="live-indicator"><i></i>Dados sincronizados</span>
         <button class="button-secondary" type="button" onclick="location.href='novamovimentacao.html'">Registrar movimentação</button>
         <button class="button-primary manager-only" data-manager-only type="button" onclick="location.href='novaos.html'">+ Nova ordem de serviço</button>
       </div>
@@ -68,6 +66,8 @@
       </article>
     </section>
 
+    <details class="secondary-insights">
+      <summary>Ver análises de estoque</summary>
     <section class="dashboard-grid dashboard-grid-top">
       <article class="product-surface chart-surface">
         <header class="surface-header">
@@ -91,9 +91,10 @@
         </div>
       </article>
     </section>
+    </details>
 
     <section class="dashboard-grid dashboard-grid-bottom">
-      <article class="product-surface activity-surface">
+      <article class="product-surface activity-surface secondary-feed">
         <header class="surface-header compact"><div><span class="surface-eyebrow">ATIVIDADE</span><h2>Movimentações recentes</h2></div><a href="movimentacao.html">Ver todas →</a></header>
         <div class="activity-list" id="listaMovimentacoes"><div class="empty-state">Carregando atividade…</div></div>
       </article>
