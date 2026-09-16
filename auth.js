@@ -34,6 +34,7 @@ setTimeout(revelarAutoAssis, 1200);
 
   const TOKEN_KEY = 'authToken';
   const USER_KEY = 'authUsuario';
+  const SESSION_ID_KEY = 'autoassis:tab-session';
   const LEGACY_SENSITIVE_KEYS = new Set([
     TOKEN_KEY,
     USER_KEY,
@@ -93,8 +94,9 @@ setTimeout(revelarAutoAssis, 1200);
   });
 
   // A autenticação fica separada por aba.
-  function setSession(token, usuario) {
-    sessionStorage.setItem(TOKEN_KEY, token);
+  function setSession(_legacyToken, usuario, sessionId) {
+    if (sessionId) sessionStorage.setItem(SESSION_ID_KEY, sessionId);
+    sessionStorage.removeItem(TOKEN_KEY);
     sessionStorage.setItem(USER_KEY, JSON.stringify(usuario));
   }
 
@@ -136,13 +138,17 @@ setTimeout(revelarAutoAssis, 1200);
     // Limpa somente a sessão desta aba.
     sessionStorage.removeItem(TOKEN_KEY);
     sessionStorage.removeItem(USER_KEY);
+    sessionStorage.removeItem(SESSION_ID_KEY);
 
     // Remove PII, credenciais, dados financeiros e caches de versões antigas.
     // A preferência de tema é deliberadamente preservada.
     clearLegacySensitiveStorage();
   }
 
-  function logout() {
+  async function logout() {
+    try {
+      await authenticatedFetch('/api/logout', { method: 'POST' });
+    } catch { /* A sessão local ainda deve ser encerrada. */ }
     clearSession();
     window.location.href = '/login.html';
   }
@@ -180,6 +186,12 @@ setTimeout(revelarAutoAssis, 1200);
     }
   }
 
+  function getCookie(name) {
+    const prefix = `${encodeURIComponent(name)}=`;
+    const item = document.cookie.split(';').map((part) => part.trim()).find((part) => part.startsWith(prefix));
+    return item ? decodeURIComponent(item.slice(prefix.length)) : '';
+  }
+
   async function authenticatedFetch(
     input,
     options = {}
@@ -193,24 +205,23 @@ setTimeout(revelarAutoAssis, 1200);
       )
     );
 
-    const token = getToken();
-
-    if (
-      isApiRequest(input) &&
-      token &&
-      !headers.has('Authorization')
-    ) {
-      headers.set(
-        'Authorization',
-        `Bearer ${token}`
-      );
+    const sessionId = sessionStorage.getItem(SESSION_ID_KEY);
+    if (isApiRequest(input)) {
+      headers.set('X-AutoAssis-Tab', '1');
+      if (sessionId) headers.set('X-AutoAssis-Session', sessionId);
+    }
+    const method = String(options.method || (input instanceof Request ? input.method : 'GET')).toUpperCase();
+    if (isApiRequest(input) && !['GET', 'HEAD', 'OPTIONS'].includes(method) && !headers.has('X-CSRF-Token')) {
+      const csrfToken = getCookie('autoassis_csrf' + (sessionId ? '_' + sessionId : ''));
+      if (csrfToken) headers.set('X-CSRF-Token', csrfToken);
     }
 
     const response = await nativeFetch(
       input,
       {
         ...options,
-        headers
+        headers,
+        credentials: 'same-origin'
       }
     );
 
@@ -243,10 +254,9 @@ setTimeout(revelarAutoAssis, 1200);
   function requireAuth(
     tipoPermitido = null
   ) {
-    const token = getToken();
     const usuario = getUsuario();
 
-    if (!token || !usuario) {
+    if (!usuario) {
       window.location.href =
         '/login.html';
 

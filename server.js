@@ -8,6 +8,9 @@ const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const path = require('path');
+const { texto, emailValido, senhaGerenteValida, nomePessoaValido, tipoEquipeValido, inteiro, decimal, idNumerico } = require('./lib/validation');
+const { createSessionTokenService } = require('./lib/session-token');
+const logger = require('./lib/logger');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
@@ -34,6 +37,8 @@ const DB_NAME = process.env.DB_NAME || 'autoassis_novo';
 const DB_CONNECTION_LIMIT = Number(process.env.DB_CONNECTION_LIMIT || 10);
 const DB_QUEUE_LIMIT = Number(process.env.DB_QUEUE_LIMIT || 50);
 const TRUST_PROXY_HOPS = Number(process.env.TRUST_PROXY_HOPS || 0);
+const SESSION_COOKIE = 'autoassis_session';
+const CSRF_COOKIE = 'autoassis_csrf';
 const DUMMY_PASSWORD_HASH = '$2b$12$yYpr3fMIH3Zu.T9uAEYenOliMZcpLv2kSFDzJ0xWrwjXhZI04xEiK';
 const PUBLIC_FILES = new Set([
   'auth.js',
@@ -48,6 +53,7 @@ const PUBLIC_FILES = new Set([
   'gerenciar_solicitacao.html',
   'gerentes.html',
   'login.html',
+  'politica-privacidade.html',
   'manifest.webmanifest',
   'movimentacao.html',
   'novamovimentacao.html',
@@ -55,8 +61,10 @@ const PUBLIC_FILES = new Set([
   'nova-senha.html',
   'novasoli.html',
   'product.css',
+  'legal.css',
   'recuperar.html',
   'relatorio.html',
+  'termos-uso.html',
   'scripts.js',
   'servicos.html',
   'ui.js'
@@ -156,6 +164,7 @@ async function registrarAuditoria(executor, req, evento) {
 app.disable('x-powered-by');
 if (TRUST_PROXY_HOPS > 0) app.set('trust proxy', TRUST_PROXY_HOPS);
 app.use((req, res, next) => {
+  const startedAt = process.hrtime.bigint();
   req.id = crypto.randomUUID();
   res.setHeader('X-Request-ID', req.id);
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -165,6 +174,16 @@ app.use((req, res, next) => {
   res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ; object-src 'none'; base-uri 'self'; frame-ancestors 'none'");
   if (req.path.startsWith('/api/')) res.setHeader('Cache-Control', 'no-store');
   if (NODE_ENV === 'production') res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  res.once('finish', () => {
+    if (!req.path.startsWith('/api/')) return;
+    logger.info('http_request', {
+      requestId: req.id,
+      method: req.method,
+      path: req.path,
+      status: res.statusCode,
+      durationMs: Number(process.hrtime.bigint() - startedAt) / 1e6
+    });
+  });
   next();
 });
 app.use(cors({
@@ -173,9 +192,57 @@ app.use(cors({
     return callback(new Error('Origem não autorizada pelo CORS.'));
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
+  credentials: true
 }));
 app.use(express.json({ limit: '100kb' }));
+
+function cookiesDaRequisicao(req) {
+  return String(req.headers.cookie || '').split(';').reduce((cookies, part) => {
+    const separator = part.indexOf('=');
+    if (separator < 1) return cookies;
+    const key = part.slice(0, separator).trim();
+    try { cookies[key] = decodeURIComponent(part.slice(separator + 1).trim()); } catch { /* Cookie malformado é ignorado. */ }
+    return cookies;
+  }, {});
+}
+
+function nomesCookiesSessao(req) {
+  const id = String(req.headers['x-autoassis-session'] || '');
+  if (id && !/^[a-f0-9]{32}$/.test(id)) throw erroHttp(400, 'Identificador de sessão inválido.');
+  const suffix = id ? '_' + id : '';
+  return { session: SESSION_COOKIE + suffix, csrf: CSRF_COOKIE + suffix };
+}
+
+function definirCookiesSessao(res, token, sessionId = '') {
+  const secure = NODE_ENV === 'production';
+  const common = { secure, sameSite: 'strict', path: '/', maxAge: AUTH_EXPIRES_SECONDS * 1000 };
+  const csrfToken = crypto.randomBytes(32).toString('base64url');
+  res.cookie(SESSION_COOKIE + (sessionId ? '_' + sessionId : ''), token, { ...common, httpOnly: true });
+  res.cookie(CSRF_COOKIE + (sessionId ? '_' + sessionId : ''), csrfToken, { ...common, httpOnly: false });
+}
+
+function limparCookiesSessao(res, req) {
+  const names = nomesCookiesSessao(req);
+  const common = { secure: NODE_ENV === 'production', sameSite: 'strict', path: '/' };
+  res.clearCookie(names.session, { ...common, httpOnly: true });
+  res.clearCookie(names.csrf, { ...common, httpOnly: false });
+}
+
+app.use('/api', (req, res, next) => {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+  const cookies = cookiesDaRequisicao(req);
+  const names = nomesCookiesSessao(req);
+  if (!cookies[names.session]) return next();
+  const csrfHeader = String(req.headers['x-csrf-token'] || '');
+  const csrfCookie = String(cookies[names.csrf] || '');
+  const a = Buffer.from(csrfHeader);
+  const b = Buffer.from(csrfCookie);
+  if (!csrfHeader || a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+    return res.status(403).json({ erro: 'Verificação de segurança da sessão falhou.' });
+  }
+  next();
+});
 
 app.get('/', (_req, res) => {
   res.redirect('/login.html');
@@ -193,46 +260,16 @@ app.use((req, res, next) => {
   return res.sendFile(path.join(__dirname, requestedFile));
 });
 
-function base64url(value) {
-  return Buffer.from(value).toString('base64url');
-}
-function assinarToken(usuario) {
-  const payload = {
-    aud: 'autoassis',
-    sub: usuario.id,
-    nome: usuario.nome,
-    email: usuario.email,
-    tipo: usuario.tipo,
-    ver: Number(usuario.auth_version),
-    exp: Math.floor(Date.now() / 1000) + AUTH_EXPIRES_SECONDS
-  };
-  const encoded = base64url(JSON.stringify(payload));
-  const signature = crypto.createHmac('sha256', AUTH_SECRET).update(encoded).digest('base64url');
-  return `${encoded}.${signature}`;
-}
-function verificarToken(token) {
-  const partes = String(token || '').split('.');
-  if (partes.length !== 2) throw new Error('Token inválido.');
-  const [encoded, signature] = partes;
-  if (!encoded || !signature) throw new Error('Token inválido.');
-  const expected = crypto.createHmac('sha256', AUTH_SECRET).update(encoded).digest('base64url');
-  const a = Buffer.from(signature);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) throw new Error('Assinatura inválida.');
-  const payload = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8'));
-  const versaoValida = Number.isSafeInteger(Number(payload.ver)) && Number(payload.ver) >= 1;
-  if (payload.aud !== 'autoassis' || !Number.isSafeInteger(Number(payload.sub)) || !versaoValida
-    || !['cliente', 'gerente', 'mecanico'].includes(payload.tipo)) {
-    throw new Error('Token inválido.');
-  }
-  if (!payload.exp || payload.exp < Math.floor(Date.now() / 1000)) throw new Error('Token expirado.');
-  return payload;
-}
+const sessionTokens = createSessionTokenService({ secret: AUTH_SECRET, expiresInSeconds: AUTH_EXPIRES_SECONDS });
+const assinarToken = sessionTokens.sign;
+const verificarToken = sessionTokens.verify;
 async function autenticar(req, res, next) {
   try {
     const auth = req.headers.authorization || '';
-    if (!auth.startsWith('Bearer ')) return res.status(401).json({ erro: 'Autenticação necessária.' });
-    const sessao = verificarToken(auth.slice(7));
+    const cookieToken = cookiesDaRequisicao(req)[nomesCookiesSessao(req).session];
+    const token = auth.startsWith('Bearer ') ? auth.slice(7) : cookieToken;
+    if (!token) return res.status(401).json({ erro: 'Autenticação necessária.' });
+    const sessao = verificarToken(token);
     const [usuarios] = await pool.execute(
       'SELECT id, nome, email, tipo, auth_version FROM usuarios WHERE id = ? LIMIT 1',
       [Number(sessao.sub)]
@@ -306,16 +343,6 @@ const limiteLogin = limitar({
   }
 });
 
-function texto(value, campo, min = 1, max = 255) {
-  const v = String(value ?? '').trim();
-  if (v.length < min || v.length > max) throw new Error(`${campo} deve ter entre ${min} e ${max} caracteres.`);
-  return v;
-}
-function emailValido(value) {
-  const v = texto(value, 'E-mail', 5, 150).toLowerCase();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) throw new Error('E-mail inválido.');
-  return v;
-}
 function escaparHtmlEmail(value) {
   return String(value ?? '')
     .replaceAll('&', '&amp;')
@@ -442,33 +469,6 @@ Gestão profissional de oficina`;
 
   return { subject, text, html };
 }
-function senhaGerenteValida(value) {
-  const senha = typeof value === 'string' ? value : '';
-  if (senha.length < 10 || senha.length > 128) {
-    throw new Error('A senha deve ter entre 10 e 128 caracteres.');
-  }
-  if (/\s/u.test(senha)) {
-    throw new Error('Senha inválida: não use espaços ou outros caracteres em branco.');
-  }
-  if (!/[a-z]/.test(senha) || !/[A-Z]/.test(senha) || !/\d/.test(senha) || !/[^A-Za-z0-9]/.test(senha)) {
-    throw new Error('Senha inválida: use letra maiúscula, letra minúscula, número e caractere especial.');
-  }
-  return senha;
-}
-function nomePessoaValido(value) {
-  const nome = texto(value, 'Nome', 2, 100).replace(/\s+/g, ' ');
-  if (!/^[\p{L}\p{M}][\p{L}\p{M}'’. -]*$/u.test(nome)) {
-    throw new Error('Nome inválido. Use apenas letras, espaços, apóstrofo, ponto ou hífen.');
-  }
-  return nome;
-}
-function tipoEquipeValido(value) {
-  const tipo = String(value || '').trim().toLowerCase();
-  if (!['gerente', 'mecanico'].includes(tipo)) {
-    throw new Error('Perfil inválido. Use gerente ou mecanico.');
-  }
-  return tipo;
-}
 function erroHttp(status, message) {
   return Object.assign(new Error(message), { status });
 }
@@ -560,30 +560,14 @@ function configuracaoOficinaAmbiente() {
     endereco: valor('OFICINA_ENDERECO')
   };
 }
-function inteiro(value, campo, min = 0) {
-  const n = Number(value);
-  if (!Number.isInteger(n) || n < min) throw new Error(`${campo} inválido.`);
-  return n;
-}
-function decimal(value, campo, min = 0) {
-  const n = Number(value);
-  if (!Number.isFinite(n) || n < min) throw new Error(`${campo} inválido.`);
-  return n;
-}
-function idNumerico(value) {
-  const valor = String(value ?? '').trim();
-  if (!/^[1-9]\d*$/.test(valor)) throw new Error('ID inválido.');
-  const n = Number(valor);
-  if (!Number.isSafeInteger(n)) throw new Error('ID inválido.');
-  return n;
-}
 function asyncRoute(handler) {
   return (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
 }
 
-app.get('/api/saude', asyncRoute(async (_req, res) => {
+app.get('/api/saude', (_req, res) => res.json({ status: 'ok', service: 'autoassis' }));
+app.get('/api/prontidao', asyncRoute(async (_req, res) => {
   await pool.query('SELECT 1');
-  res.json({ status: 'ok' });
+  res.json({ status: 'ready', database: 'ok' });
 }));
 
 app.post('/api/cadastro', limiteAuth, asyncRoute(async (req, res) => {
@@ -614,12 +598,19 @@ app.post('/api/login', limiteLogin, asyncRoute(async (req, res) => {
   }
   const usuario = usuarios[0];
   const token = assinarToken(usuario);
+  const sessionId = req.headers['x-autoassis-tab'] === '1' ? crypto.randomBytes(16).toString('hex') : '';
+  definirCookiesSessao(res, token, sessionId);
   res.json({
     mensagem: 'Login realizado com sucesso.',
-    token,
+    ...(sessionId ? { sessionId } : {}),
     usuario: { id: usuario.id, nome: usuario.nome, email: usuario.email, tipo: usuario.tipo }
   });
 }));
+
+app.post('/api/logout', (req, res) => {
+  limparCookiesSessao(res, req);
+  res.status(204).end();
+});
 
 async function criarMembroEquipe(req, res, tipoForcado = null) {
   const dados = req.body || {};
@@ -703,10 +694,10 @@ async function editarMembroEquipe(req, res) {
       membro
     };
     if (id === Number(req.usuario.id)) {
-      resposta.token = assinarToken({
+      definirCookiesSessao(res, assinarToken({
         ...membro,
         auth_version: Number(atual.auth_version) + 1
-      });
+      }), String(req.headers['x-autoassis-session'] || ''));
     }
     return res.json(resposta);
   } catch (error) {
@@ -760,6 +751,28 @@ app.get('/api/equipe', autenticar, somenteGerente, asyncRoute(async (_req, res) 
     "SELECT id, nome, email, tipo FROM usuarios WHERE tipo IN ('gerente', 'mecanico') ORDER BY nome ASC, id ASC"
   );
   res.json(membros);
+}));
+
+// Informações estritamente públicas usadas nos documentos legais. Não expõe
+// configurações técnicas, credenciais ou dados de usuários.
+app.get('/api/informacoes-legais', asyncRoute(async (_req, res) => {
+  let configuracao = configuracaoOficinaAmbiente();
+  try {
+    const [registros] = await pool.execute(
+      'SELECT nome, documento, telefone, email, endereco FROM configuracao_oficina WHERE id = 1 LIMIT 1'
+    );
+    if (registros[0]) configuracao = registros[0];
+  } catch (erro) {
+    console.warn('Configuração legal no banco indisponível; usando dados públicos do ambiente.');
+  }
+  res.json({
+    nome: configuracao.nome || 'Oficina responsável pelo atendimento',
+    documento: configuracao.documento || '',
+    endereco: configuracao.endereco || '',
+    email: configuracao.email || '',
+    privacyEmail: String(process.env.PRIVACY_EMAIL || configuracao.email || '').trim().slice(0, 254),
+    cidade: String(process.env.TERMS_CITY || '').trim().slice(0, 100)
+  });
 }));
 
 app.post('/api/equipe', autenticar, somenteGerente, asyncRoute((req, res) => criarMembroEquipe(req, res)));
@@ -985,9 +998,10 @@ app.get('/api/auditoria/meus-atendimentos', autenticar, asyncRoute(async (req, r
             CASE a.usuarioTipo WHEN 'cliente' THEN 'Você' ELSE 'Oficina' END AS autor
        FROM auditoria a
        INNER JOIN solicitacoes s ON CAST(s.id AS CHAR) = a.entidadeId
-      WHERE a.entidade = 'servico' AND s.emailCliente = ?
+      WHERE a.entidade = 'servico'
+        AND (s.clienteUsuarioId = ? OR (s.clienteUsuarioId IS NULL AND s.emailCliente = ?))
       ORDER BY a.id DESC LIMIT 100`,
-    [req.usuario.email]
+    [req.usuario.id, req.usuario.email]
   );
   const ler = (valor) => { if (valor == null || typeof valor === 'object') return valor; try { return JSON.parse(valor); } catch { return null; } };
   res.json(registros.map((item) => ({
@@ -1163,7 +1177,13 @@ app.post('/api/ordens-servico', autenticar, somenteGerente, asyncRoute(async (re
 
 app.get('/api/solicitacoes', autenticar, asyncRoute(async (req, res) => {
   if (req.usuario.tipo === 'gerente') {
-    const [rows] = await pool.query('SELECT * FROM solicitacoes WHERE arquivado = 0 ORDER BY id DESC');
+    const [rows] = await pool.query(`
+      SELECT s.*, p.nota AS avaliacaoNota, p.comentario AS avaliacaoComentario,
+             p.criadoEm AS avaliacaoCriadaEm
+      FROM solicitacoes s
+      LEFT JOIN pesquisas_satisfacao p ON p.solicitacaoId = s.id
+      WHERE s.arquivado = 0 ORDER BY s.id DESC
+    `);
     return res.json(rows);
   }
   if (req.usuario.tipo === 'mecanico') {
@@ -1177,10 +1197,74 @@ app.get('/api/solicitacoes', autenticar, asyncRoute(async (req, res) => {
     return res.json(rows);
   }
   const [rows] = await pool.execute(
-    'SELECT * FROM solicitacoes WHERE emailCliente = ? AND arquivado = 0 ORDER BY id DESC',
-    [req.usuario.email]
+    `SELECT s.*, p.nota AS avaliacaoNota, p.comentario AS avaliacaoComentario,
+            p.criadoEm AS avaliacaoCriadaEm
+     FROM solicitacoes s
+     LEFT JOIN pesquisas_satisfacao p ON p.solicitacaoId = s.id
+     WHERE (s.clienteUsuarioId = ? OR (s.clienteUsuarioId IS NULL AND s.emailCliente = ?))
+       AND (s.arquivado = 0 OR s.status = 'Concluído') ORDER BY s.id DESC`,
+    [req.usuario.id, req.usuario.email]
   );
   res.json(rows);
+}));
+
+app.post('/api/solicitacoes/:id/avaliacao', autenticar, asyncRoute(async (req, res) => {
+  if (req.usuario.tipo !== 'cliente') {
+    return res.status(403).json({ erro: 'A avaliação deve ser enviada pelo cliente do atendimento.' });
+  }
+  const id = idNumerico(req.params.id);
+  const nota = inteiro(req.body.nota, 'Nota', 1);
+  if (nota > 5) return res.status(400).json({ erro: 'Nota deve estar entre 1 e 5.' });
+  const comentarioBruto = String(req.body.comentario ?? '').trim();
+  if (comentarioBruto.length > 1000) return res.status(400).json({ erro: 'Comentário deve ter no máximo 1000 caracteres.' });
+  const comentario = comentarioBruto || null;
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const [solicitacoes] = await conn.execute(
+      `SELECT id, status FROM solicitacoes
+       WHERE id = ?
+         AND (clienteUsuarioId = ? OR (clienteUsuarioId IS NULL AND emailCliente = ?))
+       LIMIT 1 FOR UPDATE`,
+      [id, req.usuario.id, req.usuario.email]
+    );
+    const solicitacao = solicitacoes[0];
+    if (!solicitacao) throw erroHttp(404, 'Atendimento não encontrado.');
+    if (solicitacao.status !== 'Concluído') throw erroHttp(409, 'A avaliação fica disponível após a conclusão do serviço.');
+    await conn.execute(
+      `INSERT INTO pesquisas_satisfacao (solicitacaoId, clienteUsuarioId, nota, comentario)
+       VALUES (?, ?, ?, ?)`,
+      [id, req.usuario.id, nota, comentario]
+    );
+    await registrarAuditoria(conn, req, {
+      acao: 'AVALIAR', entidade: 'servico', entidadeId: id,
+      resumo: `Atendimento avaliado com nota ${nota}`, depois: { nota, possuiComentario: Boolean(comentario) }
+    });
+    await conn.commit();
+    return res.status(201).json({ mensagem: 'Obrigado pela sua avaliação.', avaliacao: { nota, comentario } });
+  } catch (error) {
+    await conn.rollback();
+    if (error.code === 'ER_DUP_ENTRY') return res.status(409).json({ erro: 'Este atendimento já foi avaliado.' });
+    if (error.status) return res.status(error.status).json({ erro: error.message });
+    throw error;
+  } finally {
+    conn.release();
+  }
+}));
+
+app.get('/api/avaliacoes/resumo', autenticar, somenteGerente, asyncRoute(async (_req, res) => {
+  const [rows] = await pool.query(`
+    SELECT COUNT(*) AS total, ROUND(AVG(nota), 2) AS media,
+           SUM(nota = 5) AS nota5, SUM(nota <= 2) AS notasBaixas
+    FROM pesquisas_satisfacao
+  `);
+  res.json({
+    total: Number(rows[0]?.total || 0),
+    media: rows[0]?.media == null ? null : Number(rows[0].media),
+    nota5: Number(rows[0]?.nota5 || 0),
+    notasBaixas: Number(rows[0]?.notasBaixas || 0)
+  });
 }));
 
 app.get('/api/solicitacoes/:id/contrato', autenticar, somenteEquipe, asyncRoute(async (req, res) => {
@@ -1222,11 +1306,12 @@ app.post('/api/solicitacoes', autenticar, asyncRoute(async (req, res) => {
     return res.status(400).json({ erro: 'Use a rota de ordem de serviço ou o fluxo de orçamento para este status.' });
   }
   const status = gerente && statusIniciais.includes(req.body.status) ? req.body.status : 'Pendente';
+  const clienteUsuarioId = membroEquipe ? null : Number(req.usuario.id);
   const [resultado] = await pool.execute(
     `INSERT INTO solicitacoes
-     (nomeCliente, emailCliente, telefone, veiculo, ano, placa, problema, urgencia, status, dataCriacao)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-    [nomeCliente, emailCliente, telefone, veiculo, ano, placa, problema, urgencia, status]
+     (clienteUsuarioId, nomeCliente, emailCliente, telefone, veiculo, ano, placa, problema, urgencia, status, dataCriacao)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+    [clienteUsuarioId, nomeCliente, emailCliente, telefone, veiculo, ano, placa, problema, urgencia, status]
   );
   res.status(201).json({ mensagem: 'Solicitação criada com sucesso.', id: resultado.insertId });
 }));
@@ -1246,10 +1331,12 @@ app.put('/api/solicitacoes/:id', autenticar, asyncRoute(async (req, res) => {
     const [resultado] = await pool.execute(
       `UPDATE solicitacoes
        SET status = ?, decisao = ?, decisaoEm = NOW(), decisaoUsuarioId = ?, decisaoOrigem = 'cliente'
-       WHERE id = ? AND emailCliente = ? AND status = 'Aguardando Aprovação'
+       WHERE id = ?
+         AND (clienteUsuarioId = ? OR (clienteUsuarioId IS NULL AND emailCliente = ?))
+         AND status = 'Aguardando Aprovação'
          AND osNumero IS NOT NULL AND custoSugerido > 0
          AND orcamentoHash IS NOT NULL AND orcamentoVersao > 0`,
-      [status, status, req.usuario.id, id, req.usuario.email]
+      [status, status, req.usuario.id, id, req.usuario.id, req.usuario.email]
     );
     if (!resultado.affectedRows) return res.status(404).json({ erro: 'Solicitação não encontrada ou transição não permitida.' });
     await registrarAuditoria(pool, req, { acao: 'STATUS', entidade: 'servico', entidadeId: id, resumo: `Orçamento ${status.toLowerCase()} pelo cliente`, antes: { status: 'Aguardando Aprovação' }, depois: { status } });
@@ -1442,7 +1529,10 @@ app.delete('/api/solicitacoes/:id', autenticar, somenteEquipe, asyncRoute(arquiv
 
 app.use((req, res) => res.status(404).json({ erro: 'Rota não encontrada.' }));
 app.use((error, req, res, _next) => {
-  console.error(`[${new Date().toISOString()}] [${req.id || 'sem-id'}] ${req.method} ${req.path}:`, error.message);
+  logger.error('request_failed', {
+    requestId: req.id || 'sem-id', method: req.method, path: req.path,
+    error: error.message, code: error.code || undefined
+  });
   if (error.message === 'Origem não autorizada pelo CORS.') return res.status(403).json({ erro: error.message });
   if (/deve ter|inválid|obrigatóri/i.test(error.message)) return res.status(400).json({ erro: error.message });
   res.status(500).json({ erro: 'Erro interno do servidor.' });
@@ -1451,12 +1541,12 @@ app.use((error, req, res, _next) => {
 let servidorHttp;
 async function iniciar() {
   await pool.query('SELECT 1');
-  servidorHttp = app.listen(PORT, () => console.log(`Auto+Assis disponível em ${FRONTEND_URL}`));
+  servidorHttp = app.listen(PORT, () => logger.info('server_started', { frontendUrl: FRONTEND_URL, port: PORT }));
   return servidorHttp;
 }
 
 async function encerrar(signal) {
-  console.log(`${signal} recebido. Encerrando o Auto+Assis com segurança.`);
+  logger.info('server_stopping', { signal });
   const limite = setTimeout(() => process.exit(1), 10_000);
   limite.unref();
   if (servidorHttp) {

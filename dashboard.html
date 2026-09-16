@@ -43,6 +43,7 @@
       </div>
     </section>
 
+    <p id="dashboardError" role="alert" hidden></p>
     <section class="metric-grid" aria-label="Indicadores da oficina">
       <article class="metric-card metric-inventory">
         <div class="metric-top"><span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m4 7 8-4 8 4-8 4-8-4Z"/><path d="m4 7 8 4 8-4M4 12l8 4 8-4M4 17l8 4 8-4"/></svg></span><span class="metric-label">Itens em estoque</span></div>
@@ -165,8 +166,8 @@
         const barras = criarElemento('div', 'chart-bars');
         const entrada = criarElemento('i', 'bar bar-entry');
         const saida = criarElemento('i', 'bar bar-exit');
-        const alturaEntrada = Math.min(100, Math.max(4, dia.entradas / maximo * 100));
-        const alturaSaida = Math.min(100, Math.max(4, dia.saidas / maximo * 100));
+        const alturaEntrada = dia.entradas ? Math.min(100, Math.max(4, dia.entradas / maximo * 100)) : 0;
+        const alturaSaida = dia.saidas ? Math.min(100, Math.max(4, dia.saidas / maximo * 100)) : 0;
 
         entrada.style.height = `${alturaEntrada}%`;
         entrada.title = `${dia.entradas} entradas`;
@@ -246,8 +247,9 @@
         const valorEstoque = pecas.reduce((soma, peca) => soma + quantidadeSegura(peca.quantidade) * Math.max(0, numeroSeguro(peca.preco)), 0);
         const alertas = pecas.filter((peca) => quantidadeSegura(peca.quantidade) <= Math.max(0, numeroSeguro(peca.min)));
         const regulares = pecas.length - alertas.length;
-        const percentual = pecas.length ? Math.round(regulares / pecas.length * 100) : 100;
-        const hoje = new Date().toISOString().slice(0, 10);
+        const percentual = pecas.length ? Math.round(regulares / pecas.length * 100) : 0;
+        const agora = new Date();
+        const hoje = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
         const hojeMovs = movs.filter((mov) => apenasData(mov.data) === hoje);
         const entradasHoje = hojeMovs.filter((mov) => String(mov.tipo).toLowerCase().includes('entrada')).length;
         const saidasHoje = hojeMovs.length - entradasHoje;
@@ -260,8 +262,9 @@
         document.getElementById('valMovHoje').textContent = hojeMovs.length;
         document.getElementById('valDetalheMov').textContent = `${entradasHoje} entrada(s) · ${saidasHoje} saída(s)`;
         document.getElementById('valServicos').textContent = ativos.length;
-        document.getElementById('valAguardando').textContent = aguardando ? `${aguardando} aguardando aprovação` : 'Fluxo em dia';
-        document.getElementById('healthPercent').textContent = `${percentual}%`;
+        document.getElementById('valAguardando').textContent = aguardando ? `${aguardando} aguardando aprovação` : 'Nenhum orçamento pendente';
+        document.getElementById('healthPercent').textContent = pecas.length ? `${percentual}%` : '—';
+        document.querySelector('#healthRing span').textContent = pecas.length ? 'regular' : 'sem peças';
         document.getElementById('healthyCount').textContent = regulares;
         document.getElementById('warningCount').textContent = alertas.length;
         document.getElementById('healthRing').style.setProperty('--health', `${percentual * 3.6}deg`);
@@ -272,6 +275,10 @@
       } catch (error) {
         console.error(error);
         const mensagemPublica = 'Não foi possível carregar os indicadores. Tente atualizar a página.';
+        for (const id of ['valAlertaPecas', 'valDetalheMov', 'valAguardando']) document.getElementById(id).textContent = 'Dados indisponíveis';
+        const aviso = document.getElementById('dashboardError');
+        aviso.textContent = mensagemPublica;
+        aviso.hidden = false;
         document.querySelectorAll('.chart-loading, .empty-state').forEach((elemento) => elemento.textContent = mensagemPublica);
       }
     }

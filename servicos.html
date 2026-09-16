@@ -417,6 +417,9 @@
         const contrato = podeGerarContrato && contratoPronto
           ? `<button type="button" class="btn-pdf" onclick="gerarPDF(${Number(servico.id)})">Gerar contrato</button>`
           : (podeGerarContrato ? '<span class="service-badge badge-order">Contrato após orçamento</span>' : '');
+        const avaliacao = podeGerenciarFinanceiro && Number(servico.avaliacaoNota) > 0
+          ? `<div><dt>Avaliação</dt><dd>${'★'.repeat(Number(servico.avaliacaoNota))}${'☆'.repeat(5 - Number(servico.avaliacaoNota))}${servico.avaliacaoComentario ? ` — ${escaparHtml(servico.avaliacaoComentario)}` : ''}</dd></div>`
+          : '';
 
         return `
           <article class="service-card status-${statusClass}">
@@ -438,6 +441,7 @@
                 <dl>
                   <div><dt>Cliente</dt><dd>${escaparHtml(servico.nomeCliente || 'Não informado')}</dd></div>
                   <div><dt>Problema</dt><dd>${escaparHtml(servico.problema || 'Não informado')}</dd></div>
+                  ${avaliacao}
                   ${servico.ano ? `<div><dt>Ano</dt><dd>${escaparHtml(servico.ano)}</dd></div>` : ''}
                 </dl>
               </details>

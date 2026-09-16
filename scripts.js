@@ -69,7 +69,18 @@ async function sincronizarEstoqueComBanco() {
         });
         setEstoque(estoqueAtualizado);
         if (typeof aplicarFiltrosEstoque === 'function') aplicarFiltrosEstoque();
-    } catch (e) { console.error('Erro ao sincronizar estoque'); }
+    } catch (e) {
+        console.error('Erro ao sincronizar estoque');
+        const container = document.getElementById('pecasContainer');
+        if (container) {
+            const aviso = criarNo('div', 'feedback-message feedback-error', 'Não foi possível carregar o estoque. Verifique a conexão e tente novamente.');
+            aviso.setAttribute('role', 'alert');
+            const tentar = criarNo('button', 'button-secondary', 'Tentar novamente');
+            tentar.type = 'button';
+            tentar.addEventListener('click', sincronizarEstoqueComBanco);
+            container.replaceChildren(aviso, tentar);
+        }
+    }
 }
 
 // -- DELETAR PEÇA --

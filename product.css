@@ -701,7 +701,7 @@ select option, option { background: var(--sheet) !important; color: var(--ink) !
 }
 .chart-column { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; min-width: 0; }
 .chart-bars { display: flex; align-items: flex-end; justify-content: center; gap: 4px; width: 100%; height: calc(100% - 28px); }
-.bar { display: block; width: min(14px, 34%); min-height: 4px; border-radius: 0 !important; }
+.bar { display: block; width: min(14px, 34%); min-height: 0; border-radius: 0 !important; }
 .bar-entry { background: var(--green) !important; }
 .bar-exit { background: var(--red) !important; }
 .chart-column > span { margin-top: 9px; color: var(--steel); font: 700 10px/1 Consolas, monospace; text-transform: uppercase; }
@@ -745,7 +745,7 @@ select option, option { background: var(--sheet) !important; color: var(--ink) !
 .pipeline-row { padding: 14px 2px 8px; }
 .pipeline-row > div:first-child { display: flex; justify-content: space-between; }
 .pipeline-track { height: 7px; margin-top: 9px; overflow: hidden; border: 1px solid var(--ink); border-radius: 0; background: #ded8cb; }
-.pipeline-track i { display: block; min-width: 4px; height: 100%; border-radius: 0; }
+.pipeline-track i { display: block; min-width: 0; height: 100%; border-radius: 0; }
 .pipeline-track .waiting { background: var(--yellow); }
 .pipeline-track .running { background: var(--blue); }
 .pipeline-track .done { background: var(--green); }
@@ -2070,3 +2070,212 @@ body.page-movimentacao .movement-metrics .metric-card{min-height:104px!important
 
 /* PROGRESSIVE DETAILS ----------------------------------------------------- */
 .service-details,.inventory-details{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}.service-details summary,.inventory-details summary{width:max-content;cursor:pointer;color:var(--orange-dark);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em}.service-details dl,.inventory-details dl{display:grid;gap:8px;margin-top:12px}.service-details dl>div,.inventory-details dl>div{display:grid;grid-template-columns:110px 1fr;gap:10px}.service-details dt,.inventory-details dt{color:var(--muted);font-size:11px}.service-details dd,.inventory-details dd{margin:0;color:var(--ink);font-size:12px;overflow-wrap:anywhere}.inventory-summary{display:flex;align-items:center;justify-content:space-between;gap:12px}.inventory-balance{color:var(--ink)!important;font-size:13px!important}.inventory-balance b{font-size:20px}.inventory-state{border:1px solid currentColor;padding:4px 7px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}.inventory-state.attention{color:var(--red)}.inventory-state.regular{color:var(--green)}body.page-estoque .inventory-grid>.card{min-height:150px!important}body.page-estoque .inventory-grid>.card h3{margin-bottom:2px!important}html[data-theme='dark'] .service-details dd,html[data-theme='dark'] .inventory-details dd,html[data-theme='dark'] .inventory-balance{color:var(--text)!important}@media(max-width:620px){.service-details dl>div,.inventory-details dl>div{grid-template-columns:1fr;gap:2px}}
+
+/* Acabamento: identidade da oficina com menos ornamentos e melhor leitura. */
+body.app-page > main { background-image: none !important; }
+body.app-page > aside::before,
+body.app-page > main::before,
+body.app-page > aside nav::before,
+body.app-page > aside .nav::before,
+body.app-page > aside nav a::before,
+body.app-page > aside .nav a::before,
+.metric-card::before, .metric-card::after,
+body.app-page .kpi-card::before, body.app-page .kpi-card::after,
+body.auth-page::before, body.auth-page::after { content: none !important; }
+body.app-page > aside nav a, body.app-page > aside .nav a {
+  grid-template-columns: minmax(0, 1fr);
+  padding: 12px 14px !important;
+  font-size: 14px !important;
+  border-radius: 4px !important;
+}
+.brand-code { font: 12px/1.5 "Segoe UI", sans-serif; letter-spacing: 0; }
+body.app-page .page-heading, body.app-page .header, body.app-page .header-top {
+  border-bottom: 1px solid var(--rule) !important;
+}
+body.app-page main h1, body.app-page .page-heading h1,
+body.app-page .header h1, body.app-page .header-top h1 {
+  font-family: "Segoe UI", Arial, sans-serif !important;
+  font-size: clamp(28px, 3vw, 40px) !important;
+  line-height: 1.15 !important;
+  font-weight: 700 !important;
+}
+body.app-page .metric-card, body.app-page .kpi-card, body.app-page .product-surface {
+  box-shadow: none !important;
+  border: 1px solid var(--rule) !important;
+  border-radius: 6px !important;
+}
+body.app-page .metric-card { border-top: 3px solid var(--orange) !important; }
+body.app-page .metric-label, body.app-page .metric-foot,
+body.app-page .surface-header a, .secondary-insights > summary,
+.service-details summary, .inventory-details summary {
+  font-family: "Segoe UI", Arial, sans-serif !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+}
+.metric-label { max-width: none !important; }
+body.page-login .rail-copy h1 {
+  font-family: "Segoe UI", Arial, sans-serif !important;
+  font-size: clamp(36px, 4vw, 58px) !important;
+  line-height: 1.1 !important;
+  letter-spacing: -.035em !important;
+}
+body.page-login .account-links { flex-wrap: wrap; line-height: 1.6; }
+body.auth-page .field label, body.auth-page button[type='submit'] {
+  font-family: "Segoe UI", Arial, sans-serif !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  font-size: 14px !important;
+}
+body.auth-page button[type='submit'] { clip-path: none; border-radius: 4px !important; }
+body.auth-page button[type='submit']:hover { transform: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; }
+}
+#dashboardError { padding: 14px 16px; border: 1px solid var(--red); border-left-width: 4px; color: var(--red); background: var(--sheet); line-height: 1.5; }
+
+/* Controles compartilhados: equipe, cliente e autenticação. */
+html.aa-ui[data-theme] body :is(main, .access-stage) :is(button, .btn-gerenciar, .back-action):not(.satisfaction-star):not(.tab-link):not(.toggle-pwd):not(.filter-btn):not(.tipo-btn) {
+  min-height: 44px !important;
+  padding: 10px 16px !important;
+  border: 1px solid var(--rule-strong) !important;
+  border-radius: 6px !important;
+  background: var(--sheet) !important;
+  color: var(--ink) !important;
+  box-shadow: none !important;
+  clip-path: none !important;
+  font: 600 14px/1.4 "Segoe UI", Arial, sans-serif !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  text-decoration: none !important;
+  transform: none !important;
+  transition: background-color .15s, border-color .15s !important;
+}
+html.aa-ui[data-theme] body :is(main, .access-stage) :is(.button-primary, .client-button.primary, .btn-gerenciar, .btn-nova-os, .satisfaction-submit, button[type='submit'], #novaPecaBtn, .submit-manager, .btn-orcamento) {
+  border-color: var(--orange) !important;
+  background: var(--orange) !important;
+  color: #171b1d !important;
+}
+html.aa-ui[data-theme] body :is(main, .access-stage) :is(button, .btn-gerenciar, .back-action):hover:not(:disabled):not(.satisfaction-star):not(.toggle-pwd) {
+  filter: brightness(.96) !important;
+  transform: none !important;
+}
+html.aa-ui[data-theme] body main :is(.order-action.reject, .btn-ocultar) {
+  background: var(--sheet) !important;
+  border-color: var(--red) !important;
+  color: var(--red) !important;
+}
+html.aa-ui[data-theme] body main .order-action.accept {
+  background: var(--green) !important;
+  border-color: var(--green) !important;
+  color: #fff !important;
+}
+html.aa-ui[data-theme] body :is(input:not([type='checkbox']):not([type='radio']):not([type='hidden']), select, textarea) {
+  min-height: 46px !important;
+  border: 1px solid var(--rule-strong) !important;
+  border-radius: 6px !important;
+  background: var(--sheet) !important;
+  box-shadow: none !important;
+  color: var(--ink) !important;
+  font: 400 14px/1.5 "Segoe UI", Arial, sans-serif !important;
+  letter-spacing: normal !important;
+}
+html.aa-ui[data-theme] body :is(input, select, textarea):focus-visible {
+  border-color: var(--orange) !important;
+  outline: 2px solid var(--orange) !important;
+  outline-offset: 2px !important;
+  box-shadow: none !important;
+}
+html.aa-ui[data-theme] body :is(input, select, textarea):is(:disabled, [readonly]) {
+  background: var(--sheet-2) !important;
+  color: var(--steel) !important;
+}
+html.aa-ui[data-theme] body input:is([type='checkbox'], [type='radio']) {
+  min-height: 18px !important;
+  width: 18px !important;
+  height: 18px !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  accent-color: var(--orange);
+}
+html.aa-ui[data-theme] body :is(label, .field-meta label, .control-field label) {
+  font: 600 13px/1.5 "Segoe UI", Arial, sans-serif !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  color: var(--ink) !important;
+}
+html.aa-ui[data-theme] body :is(.product-toast, .status.error, .status.ok, .feedback-message) {
+  padding: 14px 16px !important;
+  border: 1px solid var(--rule) !important;
+  border-left: 4px solid var(--blue) !important;
+  border-radius: 6px !important;
+  background: var(--sheet) !important;
+  color: var(--ink) !important;
+  box-shadow: none !important;
+  font: 400 14px/1.5 "Segoe UI", Arial, sans-serif !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+}
+html.aa-ui[data-theme] body :is(.toast-error, .status.error, .feedback-error) { border-left-color: var(--red) !important; }
+html.aa-ui[data-theme] body :is(.toast-success, .status.ok) { border-left-color: var(--green) !important; }
+html.aa-ui[data-theme] body .toast-warning { border-left-color: var(--yellow) !important; }
+html.aa-ui[data-theme] body :is(.service-state, .empty-state, .cards-loading, .empty) {
+  color: var(--steel) !important;
+  font: 400 14px/1.6 "Segoe UI", Arial, sans-serif !important;
+}
+html.aa-ui[data-theme] body :is(.service-card, .soli-card, .service-toolbar, .inventory-toolbar, .inventory-grid > .card) {
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  background: var(--sheet) !important;
+}
+html.aa-ui[data-theme] body .product-notifications { top: auto; bottom: 20px; }
+@media (max-width: 620px) {
+  html.aa-ui[data-theme] body :is(input:not([type='checkbox']):not([type='radio']), select, textarea) { font-size: 16px !important; }
+}
+html.aa-ui[data-theme='dark'] body main .order-action.accept { color: #10251c !important; }
+html.aa-ui[data-theme] body.page-cliente .client-sidebar nav a {
+  padding: 12px 14px !important;
+  border-radius: 4px !important;
+  font-size: 14px !important;
+}
+html.aa-ui[data-theme] body.page-cliente .client-heading {
+  border-bottom: 1px solid var(--rule) !important;
+  padding-bottom: 18px !important;
+  margin-bottom: 20px !important;
+}
+html.aa-ui[data-theme] body.page-cliente .client-heading p {
+  color: var(--steel) !important;
+  font: 400 14px/1.55 "Segoe UI", Arial, sans-serif !important;
+}
+/* A área do cliente utiliza a mesma estrutura visual da equipe. */
+html.aa-ui[data-theme] body.page-cliente > main {
+  background: var(--paper) !important;
+  padding: 56px clamp(24px, 4vw, 62px) 42px !important;
+}
+html.aa-ui[data-theme] body.page-cliente aside.client-sidebar {
+  width: 258px !important;
+  min-width: 258px !important;
+  padding: 24px 18px 18px !important;
+}
+html.aa-ui[data-theme] body.page-cliente .client-heading h1 {
+  font: 700 clamp(28px, 3vw, 40px)/1.15 "Segoe UI", Arial, sans-serif !important;
+  letter-spacing: -.035em !important;
+  text-transform: none !important;
+}
+html.aa-ui[data-theme] body.page-cliente .product-kicker { display: none !important; }
+html.aa-ui[data-theme] body.page-cliente .tab-link {
+  font: 600 14px/1.5 "Segoe UI", Arial, sans-serif !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+}
+html.aa-ui[data-theme] body.page-cliente .empty::before { content: none !important; }
+html.aa-ui[data-theme] body :is(.service-kpi, .service-state) {
+  border: 1px solid var(--rule) !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  background: var(--sheet) !important;
+}
+@media (max-width: 620px) {
+  html.aa-ui[data-theme] body.page-cliente > main { padding: 28px 16px !important; }
+}
