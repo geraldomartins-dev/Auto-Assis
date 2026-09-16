@@ -641,6 +641,15 @@ test('painel separa análise de orçamento e a OS manual orienta custo obrigató
   assert.match(novaOs, /gera a versão 1 do orçamento/);
 });
 
+test('painel do mecânico mostra orçamento sem liberar rejeição administrativa', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'gerenciar_solicitacao.html'), 'utf8');
+  const css = fs.readFileSync(path.join(__dirname, '..', 'product.css'), 'utf8');
+  assert.match(html, /can\('services\.quote'\)/);
+  assert.match(html, /const podeRejeitarSolicitacao = usuarioLogado\.tipo === 'gerente'/);
+  assert.doesNotMatch(css, /body\.role-mecanico \.btn-orcamento/);
+  assert.doesNotMatch(css, /body\.role-mecanico \.budget-panel/);
+});
+
 test('schema contém campos contratuais e migração idempotente', () => {
   const schema = fs.readFileSync(path.join(__dirname, '..', 'autoassis_db.sql'), 'utf8');
   for (const coluna of [

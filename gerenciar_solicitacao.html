@@ -344,7 +344,8 @@
     window.apiAuth.requireAuth(['gerente', 'mecanico']);
 
     const usuarioLogado = window.apiAuth.getUsuario() || {};
-    const podeGerenciarOrcamento = window.apiAuth.can('services.financial');
+    const podeGerenciarOrcamento = window.apiAuth.can('services.financial') || window.apiAuth.can('services.quote');
+    const podeRejeitarSolicitacao = usuarioLogado.tipo === 'gerente';
     const nomeGerente = usuarioLogado.nome || localStorage.getItem('nomeGerenteLogado') || 'Gerente';
     document.getElementById('nomeGerentePerfil').textContent = nomeGerente;
     document.getElementById('avatarGerente').textContent = nomeGerente.trim().charAt(0).toUpperCase() || 'G';
@@ -461,7 +462,7 @@
         analisar.addEventListener('click', () => atualizarStatus('Em Análise'));
         container.appendChild(analisar);
 
-        if (podeGerenciarOrcamento) {
+        if (podeRejeitarSolicitacao) {
           const rejeitar = document.createElement('button');
           rejeitar.type = 'button';
           rejeitar.className = 'btn-rejeitar';
@@ -479,12 +480,15 @@
           orcamento.textContent = 'Enviar orçamento';
           orcamento.addEventListener('click', mostrarOrcamento);
 
-          const rejeitar = document.createElement('button');
-          rejeitar.type = 'button';
-          rejeitar.className = 'btn-rejeitar';
-          rejeitar.textContent = 'Rejeitar solicitação';
-          rejeitar.addEventListener('click', () => atualizarStatus('Rejeitado'));
-          container.append(orcamento, rejeitar);
+          container.appendChild(orcamento);
+          if (podeRejeitarSolicitacao) {
+            const rejeitar = document.createElement('button');
+            rejeitar.type = 'button';
+            rejeitar.className = 'btn-rejeitar';
+            rejeitar.textContent = 'Rejeitar solicitação';
+            rejeitar.addEventListener('click', () => atualizarStatus('Rejeitado'));
+            container.appendChild(rejeitar);
+          }
         } else {
           container.innerHTML = '<p class="workflow-finished">A análise está pronta para o gerente emitir o orçamento.</p>';
         }
@@ -499,7 +503,7 @@
 
     function mostrarOrcamento() {
       if (!podeGerenciarOrcamento) {
-        window.productUI?.notify?.('Somente gerentes podem definir orçamentos.', 'warning');
+        window.productUI?.notify?.('Seu perfil não pode definir orçamentos.', 'warning');
         return;
       }
       const area = document.getElementById('areaOrcamento');
@@ -508,7 +512,10 @@
       if (dadosDoServico.custoSugerido) campo.value = dadosDoServico.custoSugerido;
       const botao = document.getElementById('btnOrcamentoBase');
       botao.textContent = 'Confirmar orçamento';
-      botao.onclick = finalizarOrcamento;
+      const confirmar = botao.cloneNode(true);
+      confirmar.id = 'btnOrcamentoBase';
+      confirmar.addEventListener('click', finalizarOrcamento);
+      botao.replaceWith(confirmar);
       campo.focus();
     }
 
