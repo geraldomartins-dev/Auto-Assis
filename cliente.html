@@ -516,6 +516,14 @@
       .order-state-panel { grid-column: auto; flex-direction: column; align-items: stretch; }
       #toast { right: 16px; bottom: 16px; min-width: 0; }
     }
+    .satisfaction-box { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--client-line); }
+    .satisfaction-box strong { display: block; margin-bottom: 8px; font-size: 12px; }
+    .satisfaction-stars { display: flex; gap: 4px; margin-bottom: 9px; }
+    .satisfaction-star { padding: 2px; border: 0; background: transparent; color: #9a9d98; font-size: 25px; cursor: pointer; }
+    .satisfaction-star.selected { color: #df7a18; }
+    .satisfaction-comment { width: 100%; min-height: 70px; padding: 9px; border: 1px solid var(--client-line); background: #fff; color: var(--client-ink); resize: vertical; }
+    .satisfaction-submit { margin-top: 8px; min-height: 36px; padding: 0 12px; border: 0; background: var(--client-green); color: #fff; font-weight: 750; cursor: pointer; }
+    .satisfaction-result { color: var(--client-green); font-size: 13px; line-height: 1.5; }
   </style>
   <script src="ui.js" defer></script>
   <meta name="theme-color" content="#202522">
@@ -531,8 +539,6 @@
         <small>Serviço automotivo</small>
       </span>
     </div>
-
-    <div class="client-module-tag">Portal / Cliente<br>Canal de atendimento 01</div>
 
     <nav class="nav" aria-label="Área do cliente">
       <a href="cliente.html" class="active">Meus atendimentos</a>
@@ -552,40 +558,21 @@
   <main class="client-main">
     <header class="client-heading">
       <div>
-        <div class="document-code">Portal de serviço / Documento 01</div>
         <h1>Meus atendimentos</h1>
-        <p>Acompanhe cada etapa do diagnóstico, valide orçamentos e consulte o histórico do seu veículo.</p>
+        <p>Acompanhe seus serviços e aprove orçamentos.</p>
       </div>
       <div class="client-actions">
-        <button type="button" class="client-button" onclick="carregarDados()">Atualizar dados</button>
-        <button type="button" class="client-button primary" onclick="window.location.href='novasoli.html'">Abrir solicitação</button>
+        <button type="button" class="client-button primary" onclick="window.location.href='novasoli.html'">Novo atendimento</button>
       </div>
     </header>
 
-    <section class="service-ledger" aria-label="Resumo dos atendimentos">
-      <div class="ledger-cell">
-        <span class="ledger-index">01</span>
-        <span>Pendentes ou devolvidos</span>
-        <strong id="contPendente">0</strong>
-      </div>
-      <div class="ledger-cell">
-        <span class="ledger-index">02</span>
-        <span>Em análise ou aprovação</span>
-        <strong id="contAnalise">0</strong>
-      </div>
-      <div class="ledger-cell">
-        <span class="ledger-index">03</span>
-        <span>Aprovados ou concluídos</span>
-        <strong id="contAprovado">0</strong>
-      </div>
-    </section>
+    <div class="client-counts" hidden aria-hidden="true"><span id="contPendente">0</span><span id="contAnalise">0</span><span id="contAprovado">0</span></div>
 
     <section class="orders-section" aria-labelledby="ordersTitle">
       <div class="orders-toolbar">
-        <div class="section-code" id="ordersTitle">Ordens / Cliente</div>
         <nav class="work-tabs" aria-label="Filtrar atendimentos">
-          <a href="#solicitacoesTab" class="tab-link active" data-tab="solicitacoes">Em acompanhamento</a>
-          <a href="#passadoTab" class="tab-link" data-tab="passado">Histórico finalizado</a>
+          <a href="#solicitacoesTab" class="tab-link active" data-tab="solicitacoes" id="ordersTitle">Em andamento</a>
+          <a href="#passadoTab" class="tab-link" data-tab="passado">Histórico</a>
         </nav>
       </div>
 
@@ -600,7 +587,7 @@
       </div>
     </section>
 
-    <div id="toast" role="status" aria-live="polite"></div>
+    <div id="toast"></div>
   </main>
 
   <script>
@@ -637,23 +624,6 @@
     const usuarioCliente = window.apiAuth.getUsuario() || {};
     const emailCliente = textoSeguro(usuarioCliente.email || localStorage.getItem('emailUsuario'), '', 254).toLowerCase();
     const nomeCliente = textoSeguro(usuarioCliente.nome || localStorage.getItem('nomeClienteLogado'), 'Cliente', 80);
-    const clienteId = idSeguro(usuarioCliente.id);
-    const chaveOcultosCliente = `autoassis:ocultos-cliente:${clienteId || encodeURIComponent(emailCliente)}`;
-
-    function lerOcultosCliente() {
-      try {
-        const dados = JSON.parse(localStorage.getItem(chaveOcultosCliente) || '[]');
-        return new Set(Array.isArray(dados) ? dados.map(idSeguro).filter(Boolean) : []);
-      } catch (erro) {
-        console.warn('Lista local de itens ocultos inválida; ela será recriada.');
-        return new Set();
-      }
-    }
-
-    function salvarOcultosCliente(ocultos) {
-      localStorage.setItem(chaveOcultosCliente, JSON.stringify([...ocultos].sort((a, b) => a - b)));
-    }
-
     function statusVisual(status) {
       if (status === 'Pendente') return 'pending';
       if (status === 'Em Análise' || status === 'Aguardando Aprovação') return 'analysis';
@@ -709,15 +679,76 @@
         botoes.append(aceitar, recusar);
         blocoOrcamento.appendChild(botoes);
         estado.appendChild(blocoOrcamento);
-      } else if ((status === 'Rejeitado' || status === 'Concluído') && solicitacaoId) {
-        const ocultar = criarElemento('button', 'order-action hide', 'Ocultar registro');
-        ocultar.type = 'button';
-        ocultar.addEventListener('click', () => remover(solicitacaoId));
-        estado.appendChild(ocultar);
+      }
+
+      if (status === 'Concluído' && solicitacaoId) {
+        estado.appendChild(criarPesquisaSatisfacao(solicitacao, solicitacaoId));
       }
 
       card.append(identificacao, conteudo, estado);
       return { card, status };
+    }
+
+    function criarPesquisaSatisfacao(solicitacao, solicitacaoId) {
+      const bloco = criarElemento('div', 'satisfaction-box');
+      const notaExistente = Number(solicitacao.avaliacaoNota || 0);
+      if (notaExistente >= 1 && notaExistente <= 5) {
+        bloco.appendChild(criarElemento('p', 'satisfaction-result', `Sua avaliação: ${'★'.repeat(notaExistente)}${'☆'.repeat(5 - notaExistente)}`));
+        if (solicitacao.avaliacaoComentario) bloco.appendChild(criarElemento('p', 'satisfaction-result', textoSeguro(solicitacao.avaliacaoComentario, '', 1000)));
+        return bloco;
+      }
+
+      bloco.appendChild(criarElemento('strong', '', 'Como foi seu atendimento?'));
+      const estrelas = criarElemento('div', 'satisfaction-stars');
+      estrelas.setAttribute('role', 'radiogroup');
+      estrelas.setAttribute('aria-label', 'Nota do atendimento');
+      let nota = 0;
+      for (let valor = 1; valor <= 5; valor += 1) {
+        const estrela = criarElemento('button', 'satisfaction-star', '★');
+        estrela.type = 'button';
+        estrela.setAttribute('role', 'radio');
+        estrela.setAttribute('aria-label', `${valor} ${valor === 1 ? 'estrela' : 'estrelas'}`);
+        estrela.setAttribute('aria-checked', 'false');
+        estrela.addEventListener('click', () => {
+          nota = valor;
+          [...estrelas.children].forEach((item, indice) => {
+            item.classList.toggle('selected', indice < valor);
+            item.setAttribute('aria-checked', indice + 1 === valor ? 'true' : 'false');
+          });
+        });
+        estrelas.appendChild(estrela);
+      }
+      const comentario = document.createElement('textarea');
+      comentario.className = 'satisfaction-comment';
+      comentario.maxLength = 1000;
+      comentario.placeholder = 'Conte o que mais gostou ou o que podemos melhorar (opcional)';
+      comentario.setAttribute('aria-label', 'Comentário sobre o atendimento');
+      const enviar = criarElemento('button', 'satisfaction-submit', 'Enviar avaliação');
+      enviar.type = 'button';
+      enviar.addEventListener('click', () => enviarAvaliacao(solicitacaoId, nota, comentario.value, enviar));
+      bloco.append(estrelas, comentario, enviar);
+      return bloco;
+    }
+
+    async function enviarAvaliacao(id, nota, comentario, botao) {
+      if (!Number.isInteger(nota) || nota < 1 || nota > 5) {
+        mostrarToast('Escolha uma nota de 1 a 5 estrelas.', 'warning');
+        return;
+      }
+      botao.disabled = true;
+      try {
+        const resposta = await window.apiAuth.fetch(`/api/solicitacoes/${id}/avaliacao`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nota, comentario: String(comentario || '').trim() })
+        });
+        const dados = await resposta.json().catch(() => ({}));
+        if (!resposta.ok) throw new Error(dados.erro || 'Não foi possível enviar a avaliação.');
+        mostrarToast('Obrigado! Sua avaliação foi registrada.');
+        await carregarDados();
+      } catch (erro) {
+        botao.disabled = false;
+        mostrarToast(erro.message || 'Erro ao enviar a avaliação.', 'error');
+      }
     }
 
     async function carregarDados() {
@@ -741,11 +772,9 @@
           auditoriaPorSolicitacao.get(id).push(evento);
         });
         if (!Array.isArray(dados)) throw new Error('Resposta inválida do servidor.');
-        const ocultosCliente = lerOcultosCliente();
         const minhasSolicitacoes = dados.filter((solicitacao) => {
-          const solicitacaoId = idSeguro(solicitacao?.id);
           const pertenceAoCliente = !emailCliente || textoSeguro(solicitacao?.emailCliente, '', 254).toLowerCase() === emailCliente;
-          return pertenceAoCliente && (!solicitacaoId || !ocultosCliente.has(solicitacaoId));
+          return pertenceAoCliente;
         });
 
         let pendentes = 0;
@@ -771,7 +800,7 @@
         document.getElementById('contAprovado').textContent = String(aprovados);
       } catch (erro) {
         console.error('Erro ao carregar atendimentos:', erro);
-        mostrarToast(erro.message || 'Erro ao carregar os atendimentos.');
+        mostrarToast(erro.message || 'Erro ao carregar os atendimentos.', 'error');
       }
     }
 
@@ -786,7 +815,7 @@
       const solicitacaoId = idSeguro(id);
       const statusPermitidos = new Set(['Aprovado', 'Rejeitado']);
       if (!solicitacaoId || !statusPermitidos.has(status)) {
-        mostrarToast('Não foi possível identificar esta solicitação.');
+        mostrarToast('Não foi possível identificar esta solicitação.', 'error');
         return;
       }
       if (!window.confirm(`Deseja marcar o orçamento como ${status.toLowerCase()}?`)) return;
@@ -805,19 +834,8 @@
         await carregarDados();
       } catch (erro) {
         console.error('Erro ao atualizar solicitação:', erro);
-        mostrarToast(erro.message || 'Erro ao conectar com o servidor.');
+        mostrarToast(erro.message || 'Erro ao conectar com o servidor.', 'error');
       }
-    }
-
-    function remover(id) {
-      const solicitacaoId = idSeguro(id);
-      if (!solicitacaoId) return;
-      if (!window.confirm('Ocultar este registro do seu histórico? A oficina continuará com o registro salvo.')) return;
-      const ocultos = lerOcultosCliente();
-      ocultos.add(solicitacaoId);
-      salvarOcultosCliente(ocultos);
-      mostrarToast('Registro ocultado do seu histórico.');
-      carregarDados();
     }
 
     function switchTab(tab) {
@@ -835,7 +853,11 @@
       });
     });
 
-    function mostrarToast(texto) {
+    function mostrarToast(texto, tipo = 'success') {
+      if (window.productUI?.notify) {
+        window.productUI.notify(textoSeguro(texto, 'Operação concluída.', 260), tipo);
+        return;
+      }
       const toast = document.getElementById('toast');
       toast.textContent = textoSeguro(texto, 'Operação concluída.', 260);
       toast.classList.add('show');

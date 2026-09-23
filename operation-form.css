@@ -1,0 +1,329 @@
+/* Uniformiza as telas de criação com o restante do produto. */
+.workshop-shell {
+  display: contents !important;
+}
+
+body.app-page > .workshop-shell > aside {
+  position: sticky !important;
+  top: 0;
+  z-index: 100;
+  display: flex !important;
+  flex: 0 0 258px;
+  flex-direction: column !important;
+  width: 258px !important;
+  min-width: 258px !important;
+  height: 100vh !important;
+  padding: 24px 18px 18px !important;
+  overflow-y: auto;
+  border: 0 !important;
+  border-right: 5px solid var(--orange) !important;
+  border-radius: 0 !important;
+  background: var(--ink) !important;
+  box-shadow: none !important;
+  color: #f7f3e9 !important;
+}
+
+body.app-page > .workshop-shell > aside::after { display: none !important; }
+
+body.app-page > .workshop-shell > aside .logo {
+  display: flex !important;
+  flex-flow: row wrap !important;
+  align-items: center !important;
+  gap: 0 12px !important;
+  min-height: 62px !important;
+  margin: 4px 0 19px !important;
+  padding: 0 4px 14px !important;
+  border-bottom: 1px solid #42494b !important;
+  color: #fff !important;
+  font: 700 22px/1 "Bahnschrift Condensed", "Arial Narrow", sans-serif !important;
+  letter-spacing: -.02em !important;
+}
+
+body.app-page > .workshop-shell > aside .logo small {
+  display: block;
+  width: 100%;
+  margin: 2px 0 0 54px;
+  color: #848d90 !important;
+  font: 700 8px/1.3 Consolas, monospace !important;
+  letter-spacing: .13em !important;
+  text-transform: uppercase;
+}
+
+body.app-page > .workshop-shell > aside .industrial-mark {
+  display: inline-grid !important;
+  place-items: center;
+  width: 42px !important;
+  height: 42px !important;
+  flex: 0 0 42px !important;
+  border: 2px solid #ff8c61 !important;
+  border-radius: 0 !important;
+  color: #111 !important;
+  background: var(--orange) !important;
+  box-shadow: 3px 3px 0 #000 !important;
+  clip-path: polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 0 100%);
+  transform: none !important;
+}
+
+body.app-page > .workshop-shell > aside nav {
+  display: flex !important;
+  flex: 1 0 auto !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+  margin: 0 !important;
+}
+
+body.app-page > .workshop-shell > aside nav::before {
+  content: "MÓDULOS / OPERAÇÃO" !important;
+  display: block;
+  margin: 0 8px 8px !important;
+  color: #737d80 !important;
+  font: 700 9px/1 Consolas, monospace !important;
+  letter-spacing: .12em !important;
+}
+
+body.app-page > .workshop-shell > aside nav a {
+  position: relative;
+  display: grid !important;
+  grid-template-columns: 32px minmax(0, 1fr);
+  align-items: center !important;
+  min-height: 43px !important;
+  padding: 0 9px 0 6px !important;
+  border: 0 !important;
+  border-bottom: 1px solid #292f30 !important;
+  border-radius: 0 !important;
+  color: #b8c0c1 !important;
+  background: transparent !important;
+  font: 650 12px/1.2 "Segoe UI", sans-serif !important;
+  letter-spacing: .01em !important;
+  text-transform: none !important;
+}
+
+body.app-page > .workshop-shell > aside nav a::before {
+  content: attr(data-index) !important;
+  color: #636d70 !important;
+  font: 700 9px/1 Consolas, monospace !important;
+}
+
+body.app-page > .workshop-shell > aside nav a.active {
+  color: var(--ink) !important;
+  background: var(--sheet-2) !important;
+  box-shadow: inset 4px 0 0 var(--orange) !important;
+}
+
+body.app-page > .workshop-shell > aside .profile-card {
+  margin-top: 18px !important;
+  padding: 12px !important;
+  border: 1px solid #434b4d !important;
+  border-radius: 0 !important;
+  color: #fff !important;
+  background: #222728 !important;
+  text-align: left !important;
+  font: 600 12px/1.35 "Segoe UI", sans-serif !important;
+}
+
+body.app-page > .workshop-shell > aside .profile-card::before { display: none !important; }
+
+body.app-page > .workshop-shell > aside > button {
+  min-height: 40px;
+  margin-top: 8px !important;
+  border: 1px solid #4d5557 !important;
+  border-radius: 0 !important;
+  color: #f1eee5 !important;
+  background: transparent !important;
+  font: 700 11px/1 "Segoe UI", sans-serif !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+body.app-page > .workshop-shell > main {
+  position: relative;
+  flex: 1 1 auto;
+  width: calc(100% - 258px);
+  min-width: 0;
+  min-height: 100vh;
+  padding: 48px clamp(24px, 5vw, 64px) 54px !important;
+  color: var(--ink) !important;
+  background: var(--paper) !important;
+  font-family: "Segoe UI", Arial, sans-serif !important;
+}
+
+.document-header {
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: space-between !important;
+  gap: 24px !important;
+  min-height: 0 !important;
+  margin: 0 0 28px !important;
+  padding: 0 0 22px !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--rule) !important;
+  background: transparent !important;
+}
+
+.document-title { padding: 0 !important; }
+.document-code {
+  margin-bottom: 8px !important;
+  color: var(--orange-dark) !important;
+  font: 800 10px/1 Consolas, monospace !important;
+  letter-spacing: .14em !important;
+}
+.document-title h1 {
+  margin: 0 0 8px !important;
+  color: var(--ink) !important;
+  font: 800 clamp(32px, 4vw, 48px)/.98 "Bahnschrift Condensed", "Arial Narrow", sans-serif !important;
+  letter-spacing: -.035em !important;
+  text-transform: none !important;
+}
+.document-title p {
+  max-width: 720px !important;
+  margin: 0 !important;
+  color: var(--steel) !important;
+  font: 400 14px/1.55 "Segoe UI", sans-serif !important;
+}
+.document-stamp { display: none !important; }
+
+.sheet-wrap {
+  width: 100% !important;
+  max-width: 1120px !important;
+  margin: 0 !important;
+}
+
+.technical-sheet.form-box,
+.service-sheet.form-box,
+.movement-sheet {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  padding: 0 !important;
+  border: 1px solid var(--rule-strong) !important;
+  border-top: 4px solid var(--orange) !important;
+  border-radius: 0 !important;
+  color: var(--ink) !important;
+  background: var(--sheet) !important;
+  box-shadow: var(--shadow-soft) !important;
+}
+
+.technical-sheet::before,
+.service-sheet::before,
+.movement-sheet::before { display: none !important; }
+.sheet-meta { display: none !important; }
+
+.sheet-section {
+  display: block !important;
+  padding: 24px !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--rule) !important;
+}
+.section-index { display: none !important; }
+.section-fields { padding: 0 !important; }
+
+.technical-sheet label,
+.service-sheet label,
+.movement-sheet label {
+  display: block;
+  margin: 0 0 7px !important;
+  color: var(--ink) !important;
+  font: 700 13px/1.25 "Segoe UI", sans-serif !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+.technical-sheet input,
+.technical-sheet select,
+.technical-sheet textarea,
+.service-sheet input,
+.service-sheet select,
+.service-sheet textarea,
+.movement-sheet input,
+.movement-sheet select,
+.movement-sheet textarea {
+  min-height: 46px !important;
+  padding: 11px 13px !important;
+  border: 1px solid var(--rule-strong) !important;
+  border-radius: 0 !important;
+  color: var(--ink) !important;
+  background: #fffef9 !important;
+  box-shadow: none !important;
+  font: 400 14px/1.4 "Segoe UI", sans-serif !important;
+}
+
+.technical-sheet textarea,
+.service-sheet textarea,
+.movement-sheet textarea { min-height: 96px !important; }
+
+.technical-sheet input:focus,
+.technical-sheet select:focus,
+.technical-sheet textarea:focus,
+.service-sheet input:focus,
+.service-sheet select:focus,
+.service-sheet textarea:focus,
+.movement-sheet input:focus,
+.movement-sheet select:focus,
+.movement-sheet textarea:focus {
+  border-color: var(--orange) !important;
+  outline: 2px solid rgba(239, 91, 36, .18) !important;
+}
+
+.direction-switch { border-color: var(--rule-strong) !important; }
+.direction-option { min-height: 52px !important; font-family: "Segoe UI", sans-serif !important; }
+
+.sheet-actions {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 14px !important;
+  padding: 18px 24px !important;
+  border: 0 !important;
+  background: var(--sheet-2) !important;
+}
+.action-note { display: none !important; }
+.button-group { display: flex; gap: 10px; }
+.sheet-actions button {
+  min-height: 42px !important;
+  padding: 0 18px !important;
+  border-radius: 0 !important;
+  font: 700 13px/1 "Segoe UI", sans-serif !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+.sheet-actions .cancel,
+.sheet-actions .cancelar {
+  border: 1px solid var(--rule-strong) !important;
+  color: var(--ink) !important;
+  background: transparent !important;
+}
+.sheet-actions .save,
+.sheet-actions .create,
+.sheet-actions .registrar {
+  border: 1px solid var(--orange) !important;
+  color: #fff !important;
+  background: var(--orange) !important;
+  box-shadow: 3px 3px 0 rgba(25, 29, 30, .2) !important;
+}
+.sheet-actions .save::after,
+.sheet-actions .create::after,
+.sheet-actions .registrar::after { content: none !important; }
+
+html[data-theme='dark'] body.app-page > .workshop-shell > main { background: #171b1c !important; }
+html[data-theme='dark'] .technical-sheet.form-box,
+html[data-theme='dark'] .service-sheet.form-box,
+html[data-theme='dark'] .movement-sheet { background: #222728 !important; }
+html[data-theme='dark'] .sheet-actions { background: #1d2223 !important; }
+
+@media (max-width: 760px) {
+  body.app-page > .workshop-shell > aside {
+    position: relative !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+  }
+  body.app-page > .workshop-shell > main {
+    width: 100% !important;
+    padding: 34px 15px !important;
+  }
+  .document-header { align-items: flex-start !important; }
+  .sheet-section { padding: 18px 16px !important; }
+  .sheet-actions { align-items: stretch !important; flex-direction: column !important; padding: 16px !important; }
+  .button-group { flex-direction: column; }
+  .sheet-actions button { width: 100%; }
+}
