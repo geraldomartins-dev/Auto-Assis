@@ -23,6 +23,20 @@ CREATE TABLE IF NOT EXISTS usuarios (
   UNIQUE KEY uq_usuarios_email (email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS pesquisas_satisfacao (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  solicitacaoId INT NOT NULL,
+  clienteUsuarioId INT NOT NULL,
+  nota TINYINT UNSIGNED NOT NULL,
+  comentario VARCHAR(1000) DEFAULT NULL,
+  criadoEm DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_pesquisas_solicitacao (solicitacaoId),
+  KEY idx_pesquisas_cliente (clienteUsuarioId),
+  KEY idx_pesquisas_criadoEm (criadoEm),
+  CONSTRAINT chk_pesquisas_nota CHECK (nota BETWEEN 1 AND 5)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Migração idempotente para instalações existentes: preserva todos os usuários
 -- e amplia a hierarquia sem recriar a tabela.
 ALTER TABLE usuarios
@@ -79,6 +93,7 @@ CREATE TABLE IF NOT EXISTS pecas (
 
 CREATE TABLE IF NOT EXISTS solicitacoes (
   id INT NOT NULL AUTO_INCREMENT,
+  clienteUsuarioId INT DEFAULT NULL,
   nomeCliente VARCHAR(100) NOT NULL,
   emailCliente VARCHAR(150) NOT NULL,
   telefone VARCHAR(20) DEFAULT NULL,
@@ -110,6 +125,7 @@ CREATE TABLE IF NOT EXISTS solicitacoes (
   arquivado TINYINT(1) NOT NULL DEFAULT 0,
   arquivado_em DATETIME DEFAULT NULL,
   PRIMARY KEY (id),
+  KEY idx_solicitacoes_clienteUsuarioId (clienteUsuarioId),
   UNIQUE KEY uq_solicitacoes_osNumero (osNumero),
   KEY idx_solicitacoes_email (emailCliente),
   KEY idx_solicitacoes_status (status),

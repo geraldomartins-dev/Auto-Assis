@@ -28,7 +28,7 @@
   };
 
   const managerNavigation = [
-    ['dashboard.html', 'Painel de operação'],
+    ['dashboard.html', 'Visão geral'],
     ['estoque.html', 'Estoque'],
     ['movimentacao.html', 'Movimentações'],
     ['servicos.html', 'Serviços'],
@@ -38,7 +38,7 @@
     ['auditoria.html', 'Auditoria']
   ];
   const mechanicNavigation = [
-    ['dashboard.html', 'Painel de operação'],
+    ['dashboard.html', 'Visão geral'],
     ['estoque.html', 'Estoque'],
     ['movimentacao.html', 'Movimentações'],
     ['servicos.html', 'Serviços'],
@@ -103,6 +103,7 @@
     if (!region) {
       region = create('div', 'product-notifications');
       region.setAttribute('aria-live', 'polite');
+      region.setAttribute('role', 'status');
       document.body.appendChild(region);
     }
     const toast = create('div', `product-toast toast-${type}`, String(message || ''));
@@ -141,7 +142,7 @@
 
     const logo = aside.querySelector('.logo');
     if (logo && !logo.querySelector('.brand-code') && !logo.querySelector('small')) {
-      logo.appendChild(create('small', 'brand-code', isClient ? 'PORTAL / CLIENTE' : 'WORKSHOP / SYSTEM'));
+      logo.appendChild(create('small', 'brand-code', isClient ? 'Portal do cliente' : 'Gestão de oficina'));
     }
 
     const nav = aside.querySelector('nav, .nav');
@@ -203,7 +204,14 @@
       document.body.classList.toggle('nav-open', open);
       menuButton.setAttribute('aria-expanded', String(open));
       menuButton.textContent = open ? 'FECHAR' : 'MENU';
+      menuButton.setAttribute('aria-label', open ? 'Fechar menu' : 'Abrir menu');
     };
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && document.body.classList.contains('nav-open')) {
+        toggleMenu(false);
+        menuButton.focus();
+      }
+    });
     menuButton.addEventListener('click', () => toggleMenu(!document.body.classList.contains('nav-open')));
     backdrop.addEventListener('click', () => toggleMenu(false));
     nav?.addEventListener('click', (event) => {
@@ -216,28 +224,19 @@
     main.dataset.sheet = pageMeta[page]?.[0] || 'AA/SYS';
 
     const skipLink = create('a', 'skip-link', 'Pular para o conteúdo');
-    skipLink.href = '#conteudo-principal';
+    skipLink.href = `#${main.id}`;
+    main.tabIndex = -1;
     document.body.prepend(skipLink);
 
     const h1 = main.querySelector('h1');
     const hasStructuredHeading = Boolean(h1?.closest('.page-heading') || h1?.parentElement?.querySelector('.page-overline'));
     if (h1 && !hasStructuredHeading && !h1.previousElementSibling?.classList.contains('product-kicker')) {
       const kicker = create('div', 'product-kicker');
-      kicker.append(create('span', 'kicker-code', pageMeta[page]?.[0] || 'AA/SYS'), create('span', '', pageMeta[page]?.[1] || 'Auto+Assis'));
+      kicker.append(create('span', '', pageMeta[page]?.[1] || 'Auto+Assis'));
       h1.before(kicker);
     }
 
-    const headingContainer = h1?.closest('.header, .header-top');
-    if (headingContainer && !headingContainer.querySelector('.system-chip')) {
-      headingContainer.appendChild(create('span', 'system-chip', 'BASE ONLINE'));
-    }
 
-    const footer = create('footer', 'product-footer');
-    footer.append(
-      create('span', '', 'AUTO+ASSIS // SISTEMA OPERACIONAL DE OFICINA'),
-      create('span', 'footer-code', `${pageMeta[page]?.[0] || 'AA/SYS'} · DADOS SINCRONIZADOS`)
-    );
-    main.appendChild(footer);
   }
 
   document.querySelectorAll('button:not([aria-label])').forEach((button) => {
