@@ -36,6 +36,7 @@ Versão atual: **1.4.0**.
 - abertura e acompanhamento de solicitações;
 - aprovação ou rejeição de orçamento;
 - histórico auditável das mudanças do próprio atendimento, sem dados internos da oficina;
+- pesquisa de satisfação após a conclusão, com nota de 1 a 5 e comentário opcional;
 - recuperação de senha por e-mail quando o SMTP está configurado.
 
 ### Experiência de uso
@@ -96,6 +97,9 @@ Versão atual: **1.4.0**.
 - `npm run backup`: cria um dump privado em `backups/`;
 - `npm run migrate`: cria backup e aplica a migração versionada da versão 1.2.0;
 - `npm test`: executa os testes automatizados;
+- `npm run verify`: valida sintaxe, scripts das páginas e testes unitários/de integração;
+- `npm run test:e2e`: executa os fluxos principais em um navegador Chromium;
+- `npm run test:e2e:ui`: abre o modo interativo dos testes ponta a ponta;
 - `npm audit --omit=dev`: verifica vulnerabilidades conhecidas.
 
 ## Configuração de produção
@@ -109,7 +113,12 @@ O servidor falha de forma segura quando `NODE_ENV=production` e encontra configu
   `SMTP_REPLY_TO` com um endereço válido para receber respostas;
 - `TRUST_PROXY_HOPS` conforme o proxy reverso utilizado;
 - `OFICINA_NOME`, `OFICINA_DOCUMENTO`, `OFICINA_TELEFONE`, `OFICINA_EMAIL` e `OFICINA_ENDERECO` com os dados exibidos nos documentos;
+- `PRIVACY_EMAIL` com o canal de atendimento à LGPD e `TERMS_CITY` com a cidade da sede da oficina;
 - backup automático e restauração testada do banco.
+
+Para monitoramento, use `GET /api/saude` como prova de vida do processo e
+`GET /api/prontidao` para verificar também a conexão com o banco. Os eventos do
+servidor são emitidos em JSON e incluem `requestId`, status e duração das APIs.
 
 Nunca publique `.env`, dumps, backups ou credenciais de demonstração.
 
@@ -138,6 +147,7 @@ Antes de gerar uma versão:
 ```powershell
 node --check server.js
 npm test
+npm run test:e2e
 npm audit --omit=dev
 ```
 
@@ -147,11 +157,12 @@ Valide também os fluxos de login dos três perfis, temas claro/escuro, estoque,
 
 A versão atual foi preparada para implantação dedicada e piloto comercial controlado em uma única oficina. Antes de operar em escala, tratar dados reais de vários clientes ou oferecer como SaaS, ainda são necessários:
 
-- confirmação de e-mail e associação de solicitações por ID de usuário;
+- confirmação de e-mail (novas solicitações já são associadas por ID de usuário,
+  com compatibilidade para registros antigos por e-mail);
 - desativação temporária de acessos e trilha de auditoria imutável;
 - migrations versionadas, monitoramento, logs estruturados e backups testados;
 - isolamento por `oficina_id` caso várias oficinas compartilhem a mesma instalação;
-- Termos de Uso, Política de Privacidade e processo de atendimento à LGPD;
+- processo interno de atendimento à LGPD, com responsáveis, prazos e registro das solicitações;
 - definição de licença, suporte, SLA e política de atualização.
 
 Esses itens são requisitos de operação comercial, não apenas melhorias visuais.

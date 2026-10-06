@@ -126,12 +126,12 @@
       margin: 0;
       color: #f5f2e9 !important;
       font-family: "Arial Narrow", "Bahnschrift Condensed", "Segoe UI", sans-serif;
-      font-size: clamp(46px, 6vw, 84px) !important;
+      font-size: clamp(34px, 3.8vw, 54px) !important;
       font-stretch: condensed;
       font-weight: 800;
-      letter-spacing: -.065em !important;
-      line-height: .91 !important;
-      text-transform: uppercase;
+      letter-spacing: -.035em !important;
+      line-height: 1.12 !important;
+      text-transform: none;
     }
     .rail-copy > p:last-of-type {
       max-width: 430px;
@@ -196,7 +196,7 @@
     .station-heading h2 {
       margin: 0;
       color: var(--auth-ink);
-      font-size: clamp(38px, 5vw, 62px);
+      font-size: clamp(32px, 3vw, 42px);
       font-weight: 780;
       letter-spacing: -.06em !important;
       line-height: .98;
@@ -360,25 +360,16 @@
       </div>
 
       <div class="rail-copy">
-        <p class="rail-code">Terminal / acesso 01</p>
-        <h1>A oficina em movimento. O controle no lugar.</h1>
-        <p>Operação, estoque e atendimento reunidos em uma rotina clara para quem vive a oficina todos os dias.</p>
+        <h1>Acompanhe o dia a dia da oficina.</h1>
+        <p>Consulte serviços, registre peças e acompanhe cada atendimento.</p>
       </div>
-
-      <div class="rail-spec" aria-label="Recursos do sistema">
-        <div><span>Operação</span><strong>Em tempo real</strong></div>
-        <div><span>Acesso</span><strong>Por perfil</strong></div>
-        <div><span>Ambiente</span><strong>Protegido</strong></div>
-      </div>
-      <div class="rail-foot"><span>AA / OPS / BR</span><span>SYS.01</span></div>
     </aside>
 
     <section class="access-stage" aria-labelledby="pageTitle">
       <div class="station">
-        <div class="station-index"><span>Identificação de operador</span><b>01 / 04</b></div>
         <header class="station-heading">
-          <h2 id="pageTitle">Entre na operação.</h2>
-          <p>Use suas credenciais. O sistema identifica automaticamente clientes, mecânicos e gerentes.</p>
+          <h2 id="pageTitle">Acesse sua conta</h2>
+          <p>Entre com seu e-mail e senha.</p>
         </header>
 
         <form id="loginForm" novalidate>
@@ -400,18 +391,16 @@
           </div>
 
           <div id="status" class="status" role="status" aria-live="polite" style="display:none"></div>
-          <button type="submit" id="submitBtn">Entrar no sistema</button>
+          <button type="submit" id="submitBtn">Entrar</button>
 
           <div class="account-links">
             <span>Ainda não tem acesso?</span>
             <a href="cadastro.html">Criar conta de cliente</a>
+            <a href="termos-uso.html">Termos de Uso</a>
+            <a href="politica-privacidade.html">Privacidade</a>
           </div>
         </form>
 
-        <footer class="station-footer">
-          <span>&copy; <span id="year"></span> Auto+Assis</span>
-          <span>Gestão automotiva integrada</span>
-        </footer>
       </div>
     </section>
   </main>
@@ -429,7 +418,6 @@
       emailEl.value = rememberedEmail;
       rememberEl.checked = true;
     }
-    document.getElementById('year').textContent = new Date().getFullYear();
 
     toggleBtn.addEventListener('click', () => {
       const reveal = pwdEl.type === 'password';
@@ -476,7 +464,7 @@
         if (resposta.ok) {
           if (rememberEl.checked) localStorage.setItem('autoassis:remember-email', dados.usuario.email);
           else localStorage.removeItem('autoassis:remember-email');
-          window.apiAuth.setSession(dados.token, dados.usuario);
+          window.apiAuth.setSession(dados.token, dados.usuario, dados.sessionId);
           localStorage.setItem('nomeUsuario', dados.usuario.nome);
           localStorage.setItem('emailUsuario', dados.usuario.email);
 

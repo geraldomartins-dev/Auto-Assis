@@ -58,3 +58,26 @@ test('mecânico cadastra peça com preço protegido e autoria auditada', () => {
   assert.match(rota, /req\.usuario\.tipo === 'gerente'[^\n]+: 0/);
   assert.match(rota, /registrarAuditoria\(conn, req/);
 });
+
+test('arquivamento de serviço pertence à equipe, persiste no banco e gera auditoria', () => {
+  const server = ler('server.js');
+  const auth = ler('auth.js');
+  const servicos = ler('servicos.html');
+  const cliente = ler('cliente.html');
+  assert.match(auth, /'services\.quote'/);
+  assert.match(auth, /'services\.archive'/);
+  assert.match(server, /\/api\/solicitacoes\/:id\/arquivar'[\s\S]*somenteEquipe/);
+  assert.match(server, /acao: 'ARQUIVAR'/);
+  assert.match(servicos, /\/api\/solicitacoes\/\$\{Number\(id\)\}\/arquivar/);
+  assert.doesNotMatch(cliente, /Ocultar registro|lerOcultosCliente|salvarOcultosCliente/);
+});
+
+test('login e portal do cliente priorizam somente conteúdo essencial', () => {
+  const login = ler('login.html');
+  const cliente = ler('cliente.html');
+  assert.doesNotMatch(login, /<div class="rail-spec"|Terminal \/ acesso|<div class="station-index"|<footer class="station-footer"/);
+  assert.match(login, />Acesse sua conta</);
+  assert.doesNotMatch(cliente, /<div class="client-module-tag"|<div class="document-code"|>Atualizar dados<|<section class="service-ledger"/);
+  assert.match(cliente, />Novo atendimento</);
+  assert.match(cliente, /id="contPendente"/);
+});
