@@ -3,7 +3,8 @@
 const mysql = require('mysql2/promise');
 const { backupDatabase, connectionOptions, identifier } = require('./backup-database');
 
-const MIGRATION_ID = '2026-08-09_1.2.0_auditoria';
+const LEGACY_MIGRATION_ID = '2026-08-09_1.2.0_auditoria';
+const MIGRATION_ID = '2026-08-21_1.5.0_satisfacao';
 
 async function tableExists(connection, table) {
   const [rows] = await connection.execute(
@@ -109,6 +110,7 @@ async function migrate() {
     `);
 
     const solicitationColumns = [
+      ['clienteUsuarioId', 'INT DEFAULT NULL AFTER id'],
       ['responsavel', 'VARCHAR(100) DEFAULT NULL'],
       ['dataInicio', 'DATE DEFAULT NULL'],
       ['orcamentoVersao', 'INT UNSIGNED NOT NULL DEFAULT 0'],
@@ -123,9 +125,34 @@ async function migrate() {
     for (const [column, definition] of solicitationColumns) {
       await ensureColumn(connection, 'solicitacoes', column, definition);
     }
+    await connection.query(`
+      UPDATE solicitacoes s
+      INNER JOIN usuarios u ON u.email = s.emailCliente AND u.tipo = 'cliente'
+      SET s.clienteUsuarioId = u.id
+      WHERE s.clienteUsuarioId IS NULL
+    `);
+    if (!await indexExists(connection, 'solicitacoes', 'idx_solicitacoes_clienteUsuarioId')) {
+      await connection.query('ALTER TABLE solicitacoes ADD KEY idx_solicitacoes_clienteUsuarioId (clienteUsuarioId)');
+    }
     if (!await indexExists(connection, 'solicitacoes', 'uq_solicitacoes_osNumero')) {
       await connection.query('ALTER TABLE solicitacoes ADD UNIQUE KEY uq_solicitacoes_osNumero (osNumero)');
     }
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS pesquisas_satisfacao (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        solicitacaoId INT NOT NULL,
+        clienteUsuarioId INT NOT NULL,
+        nota TINYINT UNSIGNED NOT NULL,
+        comentario VARCHAR(1000) DEFAULT NULL,
+        criadoEm DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uq_pesquisas_solicitacao (solicitacaoId),
+        KEY idx_pesquisas_cliente (clienteUsuarioId),
+        KEY idx_pesquisas_criadoEm (criadoEm),
+        CONSTRAINT chk_pesquisas_nota CHECK (nota BETWEEN 1 AND 5)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
 
     if (await tableExists(connection, 'movimentacoes')) {
       await connection.query("UPDATE movimentacoes SET tipo = CASE LOWER(TRIM(tipo)) WHEN 'entrada' THEN 'Entrada' WHEN 'saida' THEN 'Saída' WHEN 'saída' THEN 'Saída' ELSE tipo END");
