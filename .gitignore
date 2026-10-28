@@ -3,6 +3,11 @@ node_modules/
 .env.*
 !.env.example
 *.log
+test-results/
+playwright-report/
+tmp/
+output/
+coverage/
 
 # Artefatos e backups podem conter dados reais e nunca entram no repositório.
 *.zip
