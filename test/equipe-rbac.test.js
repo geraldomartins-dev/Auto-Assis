@@ -75,7 +75,7 @@ test.after(async () => {
   await pool.end();
 });
 
-test('login aceita mecânico e devolve perfil sem hash', async () => {
+test('login aceita mecânico, devolve perfil sem hash e cria cookies seguros', async () => {
   const hash = await bcrypt.hash('Mecanico@2026', 12);
   pool.execute = async sql => {
     assert.match(sql, /SELECT id, nome, email, senha, tipo/);
@@ -92,9 +92,10 @@ test('login aceita mecânico e devolve perfil sem hash', async () => {
   assert.equal(resposta.status, 200);
   assert.equal(corpo.usuario.tipo, 'mecanico');
   assert.equal('senha' in corpo.usuario, false);
-  assert.equal(typeof corpo.token, 'string');
-  const payload = JSON.parse(Buffer.from(corpo.token.split('.')[0], 'base64url').toString('utf8'));
-  assert.equal(payload.ver, 1);
+  assert.equal(corpo.token, undefined);
+  const cookies = resposta.headers.getSetCookie();
+  assert.equal(cookies.some(cookie => /^autoassis_session=/.test(cookie) && /HttpOnly/i.test(cookie) && /SameSite=Strict/i.test(cookie)), true);
+  assert.equal(cookies.some(cookie => /^autoassis_csrf=/.test(cookie) && !/HttpOnly/i.test(cookie)), true);
 });
 
 test('redefinição de senha incrementa a versão e invalida a sessão anterior', async () => {
@@ -233,7 +234,7 @@ test('edita membro em transação sem exigir nova senha', async () => {
   assert.equal(chamadas.includes('rollback'), false);
 });
 
-test('autoedição revoga o token antigo e devolve uma sessão renovada', async () => {
+test('autoedição revoga o token antigo e renova o cookie de sessão', async () => {
   let versaoAtual = 1;
   pool.execute = async sql => {
     if (/SELECT id, nome, email, tipo, auth_version FROM usuarios WHERE id = \? LIMIT 1/.test(sql)) {
@@ -269,9 +270,12 @@ test('autoedição revoga o token antigo e devolve uma sessão renovada', async 
   });
   const corpo = await resposta.json();
   assert.equal(resposta.status, 200);
-  assert.equal(typeof corpo.token, 'string');
+  assert.equal(corpo.token, undefined);
   assert.equal(corpo.membro.nome, 'Gerente Renovado');
-  const payloadNovo = JSON.parse(Buffer.from(corpo.token.split('.')[0], 'base64url').toString('utf8'));
+  const cookieSessao = resposta.headers.getSetCookie().find(cookie => cookie.startsWith('autoassis_session='));
+  assert.equal(typeof cookieSessao, 'string');
+  const tokenNovo = cookieSessao.match(/^autoassis_session=([^;]+)/)[1];
+  const payloadNovo = JSON.parse(Buffer.from(tokenNovo.split('.')[0], 'base64url').toString('utf8'));
   assert.equal(payloadNovo.ver, 2);
   assert.equal(payloadNovo.nome, 'Gerente Renovado');
 
@@ -281,7 +285,7 @@ test('autoedição revoga o token antigo e devolve uma sessão renovada', async 
   assert.equal(sessaoAntiga.status, 401);
 
   const sessaoNova = await fetch(`${baseUrl}/api/configuracao-oficina`, {
-    headers: { Authorization: `Bearer ${corpo.token}` }
+    headers: { Authorization: `Bearer ${tokenNovo}` }
   });
   assert.equal(sessaoNova.status, 200);
 });
@@ -531,7 +535,7 @@ test('permissão de contrato do mecânico não libera a página de relatórios',
   assert.match(auth, /const paginasGerente = new Set\(\[[\s\S]*?'relatorio\.html'/);
 });
 
-test('mecânico atualiza andamento, mas não orçamento ou número da OS', async () => {
+test('mecânico atualiza andamento, mas não injeta custo ou número da OS fora do orçamento', async () => {
   autorizar('mecanico', {
     execute: async sql => {
       if (sql.startsWith('SELECT status FROM solicitacoes')) {
@@ -561,6 +565,49 @@ test('mecânico atualiza andamento, mas não orçamento ou número da OS', async
     body: JSON.stringify({ status: 'Em Andamento', osNumero: 'OS-900' })
   });
   assert.equal(os.status, 403);
+});
+
+test('mecânico envia orçamento versionado para aprovação com autoria auditada', async () => {
+  let parametrosUpdate;
+  let auditoriaRegistrada = false;
+  const conexao = {
+    beginTransaction: async () => {},
+    execute: async (sql, parametros = []) => {
+      if (sql.includes('FROM solicitacoes') && sql.includes('FOR UPDATE')) {
+        return [[{
+          status: 'Em Análise', custoSugerido: null, osNumero: null,
+          orcamentoVersao: 0, orcamentoHash: null, anoOs: 2026
+        }], []];
+      }
+      if (sql.includes("SET status = 'Aguardando Aprovação'")) {
+        parametrosUpdate = parametros;
+        return [{ affectedRows: 1 }, []];
+      }
+      if (sql.includes('INSERT INTO auditoria')) {
+        auditoriaRegistrada = true;
+        return [{ insertId: 1 }, []];
+      }
+      throw new Error(`SQL inesperado: ${sql}`);
+    },
+    commit: async () => {},
+    rollback: async () => {},
+    release: () => {}
+  };
+  autorizar('mecanico', { getConnection: async () => conexao });
+
+  const resposta = await fetch(`${baseUrl}/api/solicitacoes/23`, {
+    method: 'PUT',
+    headers: { ...headers('mecanico'), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: 'Aguardando Aprovação', custoSugerido: 780 })
+  });
+  const corpo = await resposta.json();
+
+  assert.equal(resposta.status, 200);
+  assert.equal(corpo.osNumero, 'OS-2026-000023');
+  assert.equal(corpo.orcamentoVersao, 1);
+  assert.deepEqual(parametrosUpdate.slice(0, 3), [780, corpo.osNumero, 1]);
+  assert.match(parametrosUpdate[3], /^[a-f0-9]{64}$/);
+  assert.equal(auditoriaRegistrada, true);
 });
 
 test('configuração da oficina lê o singleton e expõe somente campos públicos', async () => {
@@ -672,4 +719,44 @@ test('configuração incompleta ou inválida não é persistida', async () => {
   });
   assert.equal(resposta.status, 400);
   assert.equal(tentouPersistir, false);
+});
+
+test('sessões por aba mantêm cookies, permissões e CSRF separados', async () => {
+  const hash = await bcrypt.hash('Abas@2026', 12);
+  pool.execute = async (sql, params) => {
+    if (/WHERE email =/.test(sql)) return [[{ ...usuario(params[0].startsWith('gerente') ? 'gerente' : 'cliente'), senha: hash }], []];
+    if (/WHERE id =/.test(sql)) return [[usuario(Number(params[0]) === 1 ? 'gerente' : 'cliente')], []];
+    if (/FROM usuarios WHERE tipo IN/.test(sql)) return [[usuario('gerente')], []];
+    throw new Error('Consulta inesperada');
+  };
+  pool.query = async () => [[], []];
+  const jar = new Map();
+  async function login(tipo) {
+    const response = await fetch(`${baseUrl}/api/login`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-AutoAssis-Tab': '1' }, body: JSON.stringify({ email: `${tipo}@teste.local`, senha: 'Abas@2026' }) });
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.match(body.sessionId, /^[a-f0-9]{32}$/);
+    assert.equal(body.token, undefined);
+    for (const cookie of response.headers.getSetCookie()) {
+      const [pair] = cookie.split(';');
+      const index = pair.indexOf('=');
+      jar.set(pair.slice(0, index), pair.slice(index + 1));
+      if (pair.startsWith('autoassis_session_')) assert.match(cookie, /HttpOnly/);
+    }
+    return body.sessionId;
+  }
+  const gerente = await login('gerente');
+  const cliente = await login('cliente');
+  assert.notEqual(gerente, cliente);
+  const cookie = [...jar].map(([k,v]) => `${k}=${v}`).join('; ');
+  const requestHeaders = id => ({ Cookie: cookie, 'X-AutoAssis-Session': id });
+  assert.equal((await fetch(`${baseUrl}/api/equipe`, { headers: requestHeaders(gerente) })).status, 200);
+  assert.equal((await fetch(`${baseUrl}/api/equipe`, { headers: requestHeaders(cliente) })).status, 403);
+  const errado = await fetch(`${baseUrl}/api/logout`, { method: 'POST', headers: { ...requestHeaders(cliente), 'X-CSRF-Token': jar.get(`autoassis_csrf_${gerente}`) } });
+  assert.equal(errado.status, 403);
+  const sair = await fetch(`${baseUrl}/api/logout`, { method: 'POST', headers: { ...requestHeaders(cliente), 'X-CSRF-Token': jar.get(`autoassis_csrf_${cliente}`) } });
+  assert.equal(sair.status, 204);
+  assert.ok(sair.headers.getSetCookie().every(value => !value.includes(gerente)));
+  assert.equal((await fetch(`${baseUrl}/api/equipe`, { headers: requestHeaders(gerente) })).status, 200);
+  assert.equal((await fetch(`${baseUrl}/api/equipe`, { headers: requestHeaders('f'.repeat(32)) })).status, 401);
 });
