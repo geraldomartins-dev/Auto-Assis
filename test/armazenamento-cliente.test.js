@@ -31,6 +31,7 @@ function contextoBase(localStorage, sessionStorage = new StorageMock()) {
     classList: { add() {} }
   };
   const document = {
+    cookie: '',
     documentElement,
     readyState: 'complete',
     title: '',
@@ -73,7 +74,7 @@ function contextoBase(localStorage, sessionStorage = new StorageMock()) {
   });
 }
 
-test('logout remove dados sensíveis legados e preserva o tema', () => {
+test('logout remove dados sensíveis legados e preserva o tema', async () => {
   const localStorage = new StorageMock({
     'autoassis:theme': 'dark',
     'autoassis:layout-density': 'compact',
@@ -98,7 +99,7 @@ test('logout remove dados sensíveis legados e preserva o tema', () => {
   const codigo = fs.readFileSync(path.join(raiz, 'auth.js'), 'utf8');
 
   vm.runInContext(codigo, contexto, { filename: 'auth.js' });
-  contexto.window.apiAuth.logout();
+  await contexto.window.apiAuth.logout();
 
   assert.equal(localStorage.getItem('autoassis:theme'), 'dark');
   assert.equal(localStorage.getItem('autoassis:layout-density'), 'compact');

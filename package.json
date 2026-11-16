@@ -7,7 +7,10 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "test": "node --test",
+    "test": "node --test test/*.test.js",
+    "verify": "node --check server.js && npm run check:html && npm test",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "check:html": "node scripts/check-inline-scripts.js",
     "backup": "node scripts/backup-database.js",
     "migrate": "node scripts/migrate.js",
@@ -23,5 +26,8 @@
     "express": "^5.2.1",
     "mysql2": "^3.23.2",
     "nodemailer": "^9.0.5"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1"
   }
 }
