@@ -154,31 +154,23 @@
   <main>
     <section class="page-heading">
       <div>
-        <span class="page-overline">RASTREABILIDADE</span>
-        <h1>Movimentações de estoque</h1>
-        <p>Acompanhe entradas e saídas de peças em uma linha do tempo operacional.</p>
+        <h1>Movimentações</h1>
+        <p>Entradas e saídas registradas no estoque.</p>
       </div>
       <div class="page-actions">
-        <span class="live-indicator"><i></i>Histórico sincronizado</span>
         <button class="button-primary" type="button" onclick="window.location.href='novamovimentacao.html'">+ Nova movimentação</button>
       </div>
     </section>
 
     <section class="metric-grid movement-metrics" aria-label="Resumo das movimentações">
-      <article class="metric-card movement-total">
-        <div class="metric-top"><span class="metric-icon">↕</span><span class="metric-label">Total registrado</span></div>
-        <strong class="metric-value" id="valTotal">0</strong>
-        <div class="metric-foot"><span>Histórico consolidado</span><span>movimentos</span></div>
-      </article>
+      <span id="valTotal" hidden>0</span>
       <article class="metric-card movement-entry">
         <div class="metric-top"><span class="metric-icon">↓</span><span class="metric-label">Entradas</span></div>
         <strong class="metric-value entry-value" id="valEntradas">0</strong>
-        <div class="metric-foot"><span class="trend trend-positive">Reposição de estoque</span><span>registros</span></div>
       </article>
       <article class="metric-card movement-exit">
         <div class="metric-top"><span class="metric-icon">↑</span><span class="metric-label">Saídas</span></div>
         <strong class="metric-value exit-value" id="valSaidas">0</strong>
-        <div class="metric-foot"><span>Consumo em serviços</span><span>registros</span></div>
       </article>
     </section>
 

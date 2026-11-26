@@ -247,12 +247,8 @@
   <main>
     <section class="page-heading">
       <div>
-        <span class="page-overline">INSIGHTS INSTANTÂNEOS</span>
         <h1>Consultas rápidas</h1>
-        <p>Respostas objetivas sobre estoque, operação e atendimento com dados atualizados.</p>
-      </div>
-      <div class="page-actions">
-        <span class="live-indicator"><i></i>Base conectada</span>
+        <p>Escolha uma pergunta e veja a resposta.</p>
       </div>
     </section>
 
@@ -262,9 +258,8 @@
           <div>
             <span class="surface-eyebrow">PERGUNTAS DISPONÍVEIS</span>
             <h2 id="questionTitle">O que você precisa saber?</h2>
-            <p>Selecione uma consulta para analisar os dados atuais da oficina.</p>
           </div>
-          <span class="question-count" id="questionCount">8 consultas</span>
+          <span class="question-count" id="questionCount">8</span>
         </header>
 
         <div class="consultation-role-note" id="mechanicConsultationNote" role="note" hidden>
@@ -274,42 +269,42 @@
         <div class="question-grid">
           <button class="question-btn" type="button" onclick="consultarEstoqueBaixo()" aria-controls="answerContent">
             <span class="question-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 2.8 20h18.4L12 3Z"/><path d="M12 9v5m0 3h.01"/></svg></span>
-            <span class="question-copy"><span class="question-type">ESTOQUE</span><strong>Quais peças precisam de reposição?</strong><small>Itens com quantidade igual ou abaixo do nível mínimo.</small></span>
+            <span class="question-copy"><strong>Peças para reposição</strong></span>
           </button>
 
           <button class="question-btn" type="button" onclick="consultarEstoqueZerado()" aria-controls="answerContent">
             <span class="question-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m4 7 8-4 8 4-8 4-8-4Z"/><path d="m4 7 8 4 8-4v10l-8 4-8-4V7Z"/><path d="M9 15h6"/></svg></span>
-            <span class="question-copy"><span class="question-type">DISPONIBILIDADE</span><strong>Quais peças estão zeradas?</strong><small>Produtos sem nenhuma unidade disponível no momento.</small></span>
+            <span class="question-copy"><strong>Peças sem estoque</strong></span>
           </button>
 
           <button class="question-btn manager-only" data-manager-only data-financial-consultation type="button" onclick="consultarValorEstoque()" aria-controls="answerContent">
             <span class="question-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16v12H4zM4 10h16"/><path d="M16 15h.01"/></svg></span>
-            <span class="question-copy"><span class="question-type">PATRIMÔNIO</span><strong>Qual é o valor total do estoque?</strong><small>Soma das quantidades multiplicadas pelos preços cadastrados.</small></span>
+            <span class="question-copy"><strong>Valor do estoque</strong></span>
           </button>
 
           <button class="question-btn" type="button" onclick="consultarMovimentacoesHoje()" aria-controls="answerContent">
             <span class="question-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 7h11l-3-3m3 3-3 3M17 17H6l3 3m-3-3 3-3"/></svg></span>
-            <span class="question-copy"><span class="question-type">FLUXO DIÁRIO</span><strong>Quantas movimentações ocorreram hoje?</strong><small>Total de entradas e saídas registradas no dia.</small></span>
+            <span class="question-copy"><strong>Movimentações de hoje</strong></span>
           </button>
 
           <button class="question-btn" type="button" onclick="consultarServicosAtivos()" aria-controls="answerContent">
             <span class="question-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5-5L12 3.6 8.4 7.2 6.1 4.9a4 4 0 0 0 5 5L19 17.8a1.7 1.7 0 0 1-2.4 2.4l-7.9-7.9a4 4 0 0 0-5-5L6 9.6 9.6 6 7.3 3.7"/></svg></span>
-            <span class="question-copy"><span class="question-type">OPERAÇÃO</span><strong>Quantos serviços estão ativos?</strong><small>Atendimentos ainda não concluídos ou rejeitados.</small></span>
+            <span class="question-copy"><strong>Serviços ativos</strong></span>
           </button>
 
           <button class="question-btn" type="button" onclick="consultarAguardandoAprovacao()" aria-controls="answerContent">
             <span class="question-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
-            <span class="question-copy"><span class="question-type">APROVAÇÕES</span><strong>Quais serviços aguardam aprovação?</strong><small>Orçamentos pendentes de uma resposta do cliente.</small></span>
+            <span class="question-copy"><strong>Aguardando aprovação</strong></span>
           </button>
 
           <button class="question-btn manager-only" data-manager-only data-financial-consultation type="button" onclick="consultarFaturamento()" aria-controls="answerContent">
             <span class="question-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19V9m6 10V5m6 14v-7m5 7H2"/><path d="m4 7 6-4 6 6 5-5"/></svg></span>
-            <span class="question-copy"><span class="question-type">RECEITA</span><strong>Qual é o faturamento dos serviços concluídos?</strong><small>Total dos valores registrados nas solicitações concluídas.</small></span>
+            <span class="question-copy"><strong>Faturamento concluído</strong></span>
           </button>
 
           <button class="question-btn" type="button" onclick="consultarCategorias()" aria-controls="answerContent">
             <span class="question-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg></span>
-            <span class="question-copy"><span class="question-type">CATÁLOGO</span><strong>Quantas peças existem por categoria?</strong><small>Agrupamento dos tipos de peça por categoria cadastrada.</small></span>
+            <span class="question-copy"><strong>Peças por categoria</strong></span>
           </button>
         </div>
       </article>
@@ -322,7 +317,6 @@
         <div class="answer-content" id="answerContent" aria-live="polite">
           Selecione uma pergunta para visualizar uma resposta com os dados atuais da oficina.
         </div>
-        <div class="answer-hint">Informações consultadas diretamente na base operacional</div>
       </section>
     </section>
   </main>
